@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { FormRenderer } from "./components";
 import { DynamicFormContext, type DynamicFormContextValue } from "./context";
@@ -93,6 +93,12 @@ export function DynamicForm({
     );
   });
 
+  // Keep visibility in a ref for stable closure access in the resolver.
+  // This prevents stale closure issues since react-hook-form caches the resolver.
+  // Updating refs during render is safe and ensures the latest value is available.
+  const visibilityRef = useRef(visibility);
+  visibilityRef.current = visibility;
+
   // Re-initialize visibility when config changes
   useEffect(() => {
     const fieldNames = getFieldNames(parsedConfig.elements);
@@ -108,13 +114,15 @@ export function DynamicForm({
   }, [parsedConfig]);
 
   // Step 5: Create visibility-aware resolver
+  // NOTE: Only recreate when schema or validation mode changes, NOT visibility.
+  // Visibility changes are read dynamically via visibilityRef to avoid stale closures.
   const resolver = useMemo(() => {
     return createVisibilityAwareResolver({
       schema: zodSchema,
-      getVisibility: () => visibility,
+      getVisibility: () => visibilityRef.current,
       invisibleFieldValidation,
     });
-  }, [zodSchema, visibility, invisibleFieldValidation]);
+  }, [zodSchema, invisibleFieldValidation]);
 
   // Step 6: Initialize react-hook-form with visibility-aware resolver
   const form = useForm<FormData>({
