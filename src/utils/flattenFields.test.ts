@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FormConfiguration } from "../types";
+import type { FormConfiguration } from "@/types";
 import { flattenFields, getFieldNames } from "./flattenFields";
 
 describe("flattenFields", () => {

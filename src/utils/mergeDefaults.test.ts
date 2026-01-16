@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FormConfiguration, FormData } from "../types";
+import type { FormConfiguration, FormData } from "@/types";
 import { getNestedValue, mergeDefaults, setNestedValue } from "./mergeDefaults";
 
 describe("setNestedValue", () => {

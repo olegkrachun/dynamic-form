@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import type { FieldElement } from "../types";
+import type { FieldElement } from "@/types";
 import { buildFieldSchema, isFieldOptional } from "./fieldSchemas";
 
 describe("fieldSchemas", () => {
