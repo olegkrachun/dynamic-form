@@ -106,16 +106,28 @@ const optionsSourceSchema = z.discriminatedUnion("type", [
 
 /**
  * Select field element schema.
+ * Options are required when optionsSource is not provided.
  */
-const selectFieldSchema = baseFieldSchema.extend({
-  type: z.literal("select"),
-  options: z.array(selectOptionSchema),
-  optionsSource: optionsSourceSchema.optional(),
-  multiple: z.boolean().optional(),
-  clearable: z.boolean().optional(),
-  searchable: z.boolean().optional(),
-  creatable: z.boolean().optional(),
-});
+const selectFieldSchema = baseFieldSchema
+  .extend({
+    type: z.literal("select"),
+    options: z.array(selectOptionSchema).optional(),
+    optionsSource: optionsSourceSchema.optional(),
+    multiple: z.boolean().optional(),
+    clearable: z.boolean().optional(),
+    searchable: z.boolean().optional(),
+    creatable: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      // Options are required when no optionsSource is provided
+      if (!data.optionsSource) {
+        return data.options !== undefined && data.options.length >= 0;
+      }
+      return true;
+    },
+    { message: "Options are required when optionsSource is not provided" }
+  );
 
 /**
  * Custom field element schema.

@@ -4,10 +4,14 @@ import type { ZodObject, ZodRawShape } from "zod";
 import type { InvisibleFieldValidation } from "../types";
 
 /**
- * Check if a value is a leaf error node (has react-hook-form 'type' property).
+ * Check if a value is a leaf error node.
+ * React-hook-form leaf errors have both 'type' and 'message' properties.
  */
 const isLeafError = (value: unknown): boolean =>
-  value !== null && typeof value === "object" && "type" in value;
+  value !== null &&
+  typeof value === "object" &&
+  "type" in value &&
+  "message" in value;
 
 /**
  * Create a warning error from an existing error object.

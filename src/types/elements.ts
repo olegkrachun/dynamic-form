@@ -172,10 +172,10 @@ export type OptionsSource =
 export interface SelectFieldElement extends BaseFieldElement {
   type: "select";
 
-  /** Available options (used when optionsSource is static or not specified) */
-  options: SelectOption[];
+  /** Available options (required when optionsSource is not provided) */
+  options?: SelectOption[];
 
-  /** Describes how to resolve options */
+  /** Describes how to resolve options (when provided, options become optional) */
   optionsSource?: OptionsSource;
 
   /** Allow selecting multiple values (default: false) */

@@ -28,16 +28,19 @@ const cityOptionsByCountry: Record<string, SelectOption[]> = {
 
 /**
  * Normalize select value for single vs multi-select.
- * Multi-select requires array, single-select requires scalar.
+ * Multi-select requires array of strings, single-select requires string.
  */
 const getSelectValue = (
   value: unknown,
   multiple?: boolean
 ): string | string[] => {
   if (multiple) {
-    return Array.isArray(value) ? value : [];
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value.filter((v): v is string => typeof v === "string");
   }
-  return (value as string) ?? "";
+  return typeof value === "string" ? value : "";
 };
 
 /**
@@ -62,7 +65,7 @@ export const SelectField: SelectFieldComponent = ({
     parentValue === null || parentValue === undefined || parentValue === "";
 
   // Filter options based on parent value (demo implementation)
-  let options = config.options;
+  let options = config.options ?? [];
   if (config.dependsOn) {
     if (isParentEmpty) {
       // No parent value - show no options

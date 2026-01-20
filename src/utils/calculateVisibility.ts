@@ -14,6 +14,23 @@ import { evaluateCondition } from "../validation";
 export type VisibilityState = Record<string, boolean>;
 
 /**
+ * Compare two visibility states and return the new state only if changed.
+ * Returns prev if no change (preserves reference equality for React).
+ */
+export const getUpdatedVisibility = (
+  prev: VisibilityState,
+  next: VisibilityState
+): VisibilityState => {
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+  for (const key of keys) {
+    if (prev[key] !== next[key]) {
+      return next;
+    }
+  }
+  return prev;
+};
+
+/**
  * Calculate visibility state for all fields based on their visibility rules.
  * Evaluates JSON Logic rules against current form data.
  *
@@ -35,23 +52,6 @@ export type VisibilityState = Record<string, boolean>;
  * // Returns: { reason: false, name: true }
  * ```
  */
-/**
- * Compare two visibility states and return the new state only if changed.
- * Returns prev if no change (preserves reference equality for React).
- */
-export const getUpdatedVisibility = (
-  prev: VisibilityState,
-  next: VisibilityState
-): VisibilityState => {
-  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
-  for (const key of keys) {
-    if (prev[key] !== next[key]) {
-      return next;
-    }
-  }
-  return prev;
-};
-
 export const calculateVisibility = (
   elements: FormElement[],
   formData: Record<string, unknown>

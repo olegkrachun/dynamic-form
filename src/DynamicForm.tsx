@@ -211,7 +211,7 @@ export const DynamicForm = ({
   const handleReset = useCallback(() => {
     form.reset(defaultValues);
     onReset?.();
-  }, [defaultValues, onReset, form.reset]);
+  }, [defaultValues, onReset, form]);
 
   return (
     <FormProvider {...form}>

@@ -86,7 +86,7 @@ const renderItemField = (
             value={(currentValue as string) ?? ""}
           >
             <option value="">Select...</option>
-            {itemField.options.map((opt) => (
+            {(itemField.options ?? []).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
