@@ -4,6 +4,82 @@ import type { ZodObject, ZodRawShape } from "zod";
 import type { InvisibleFieldValidation } from "../types";
 
 /**
+ * Check if a value is a leaf error node (has react-hook-form 'type' property).
+ */
+const isLeafError = (value: unknown): boolean =>
+  value !== null && typeof value === "object" && "type" in value;
+
+/**
+ * Create a warning error from an existing error object.
+ */
+const createWarningError = (error: unknown): unknown => ({
+  ...(error as object),
+  type: "warning",
+});
+
+/**
+ * Process a single error entry based on visibility rules.
+ * Returns the error to include or undefined to skip.
+ */
+const processLeafError = (
+  value: unknown,
+  path: string,
+  visibility: Record<string, boolean>,
+  warnMode: boolean
+): unknown | undefined => {
+  const isVisible = visibility[path] !== false;
+
+  if (isVisible) {
+    return value;
+  }
+  if (warnMode) {
+    return createWarningError(value);
+  }
+  return undefined;
+};
+
+/**
+ * Recursively filter errors based on field visibility.
+ * Handles nested error structures for dot-notation paths.
+ */
+const filterErrorsByVisibility = (
+  errors: FieldErrors<FieldValues>,
+  visibility: Record<string, boolean>,
+  warnMode: boolean,
+  parentPath = ""
+): FieldErrors<FieldValues> => {
+  const acc: FieldErrors<FieldValues> = {};
+
+  for (const [key, value] of Object.entries(errors)) {
+    const path = parentPath ? `${parentPath}.${key}` : key;
+
+    // Handle nested objects (recurse)
+    if (!isLeafError(value) && value && typeof value === "object") {
+      const nested = filterErrorsByVisibility(
+        value as FieldErrors<FieldValues>,
+        visibility,
+        warnMode,
+        path
+      );
+      if (Object.keys(nested).length > 0) {
+        // biome-ignore lint/suspicious/noExplicitAny: react-hook-form error types are complex
+        (acc as any)[key] = nested;
+      }
+      continue;
+    }
+
+    // Handle leaf errors
+    const processed = processLeafError(value, path, visibility, warnMode);
+    if (processed !== undefined) {
+      // biome-ignore lint/suspicious/noExplicitAny: react-hook-form error types are complex
+      (acc as any)[key] = processed;
+    }
+  }
+
+  return acc;
+};
+
+/**
  * Options for creating a visibility-aware resolver.
  */
 export interface VisibilityAwareResolverOptions<T extends ZodRawShape> {
@@ -52,29 +128,14 @@ export const createVisibilityAwareResolver = <T extends ZodRawShape>(
       return result;
     }
 
-    // Get current visibility state
-    const visibility = options.getVisibility();
-    const filteredErrors: FieldErrors<FieldValues> = {};
-
     // Filter errors based on visibility
-    for (const [fieldPath, error] of Object.entries(result.errors)) {
-      // Check if field is visible (default to true if not in visibility map)
-      const isVisible = visibility[fieldPath] !== false;
-
-      if (isVisible) {
-        // Field is visible: include the error
-        // biome-ignore lint/suspicious/noExplicitAny: react-hook-form error types are complex
-        (filteredErrors as any)[fieldPath] = error;
-      } else if (options.invisibleFieldValidation === "warn") {
-        // Field is invisible but we want warnings: mark as warning type
-        // biome-ignore lint/suspicious/noExplicitAny: react-hook-form error types are complex
-        (filteredErrors as any)[fieldPath] = {
-          ...(error as object),
-          type: "warning",
-        };
-      }
-      // If "skip", we don't include the error at all for invisible fields
-    }
+    const visibility = options.getVisibility();
+    const warnMode = options.invisibleFieldValidation === "warn";
+    const filteredErrors = filterErrorsByVisibility(
+      result.errors,
+      visibility,
+      warnMode
+    );
 
     return {
       values: result.values,

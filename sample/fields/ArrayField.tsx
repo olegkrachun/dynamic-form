@@ -27,9 +27,15 @@ const getNestedError = (
 
 /**
  * Render a single field within an array item.
+ * @param itemField - Field configuration
+ * @param itemIndex - Index of the array item (for unique IDs)
+ * @param value - Current item value
+ * @param onChange - Handler for value changes
+ * @param error - Validation error message if any
  */
 const renderItemField = (
   itemField: FieldElement,
+  itemIndex: number,
   value: unknown,
   onChange: (fieldName: string, newValue: unknown) => void,
   error?: string
@@ -37,14 +43,16 @@ const renderItemField = (
   const fieldValue = value as Record<string, unknown>;
   const currentValue = fieldValue?.[itemField.name] ?? "";
   const hasError = Boolean(error);
+  // Create unique ID using item index and field name
+  const fieldId = `${itemField.name}-${itemIndex}`;
 
   switch (itemField.type) {
     case "text":
     case "email":
     case "phone":
       return (
-        <div className="array-item-field" key={itemField.name}>
-          <label className="field-label" htmlFor={itemField.name}>
+        <div className="array-item-field" key={fieldId}>
+          <label className="field-label" htmlFor={fieldId}>
             {itemField.label}
             {itemField.validation?.required && (
               <span className="required">*</span>
@@ -52,7 +60,7 @@ const renderItemField = (
           </label>
           <input
             className={`field-input ${hasError ? "field-input--error" : ""}`}
-            id={itemField.name}
+            id={fieldId}
             onChange={(e) => onChange(itemField.name, e.target.value)}
             placeholder={itemField.placeholder}
             type={itemField.type === "email" ? "email" : "text"}
@@ -64,8 +72,8 @@ const renderItemField = (
 
     case "select":
       return (
-        <div className="array-item-field" key={itemField.name}>
-          <label className="field-label" htmlFor={itemField.name}>
+        <div className="array-item-field" key={fieldId}>
+          <label className="field-label" htmlFor={fieldId}>
             {itemField.label}
             {itemField.validation?.required && (
               <span className="required">*</span>
@@ -73,7 +81,7 @@ const renderItemField = (
           </label>
           <select
             className={`field-input ${hasError ? "field-input--error" : ""}`}
-            id={itemField.name}
+            id={fieldId}
             onChange={(e) => onChange(itemField.name, e.target.value)}
             value={(currentValue as string) ?? ""}
           >
@@ -92,12 +100,13 @@ const renderItemField = (
       return (
         <div
           className="array-item-field array-item-field--checkbox"
-          key={itemField.name}
+          key={fieldId}
         >
-          <label className="field-label--checkbox">
+          <label className="field-label--checkbox" htmlFor={fieldId}>
             <input
               checked={Boolean(currentValue)}
               className="field-checkbox"
+              id={fieldId}
               onChange={(e) => onChange(itemField.name, e.target.checked)}
               type="checkbox"
             />
@@ -186,6 +195,7 @@ export const ArrayField: ArrayFieldComponent = ({
               {config.itemFields.map((itemField) =>
                 renderItemField(
                   itemField,
+                  index,
                   item,
                   (fieldName, newValue) =>
                     updateItem(index, fieldName, newValue),

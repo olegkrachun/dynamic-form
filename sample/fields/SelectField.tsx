@@ -27,6 +27,20 @@ const cityOptionsByCountry: Record<string, SelectOption[]> = {
 };
 
 /**
+ * Normalize select value for single vs multi-select.
+ * Multi-select requires array, single-select requires scalar.
+ */
+const getSelectValue = (
+  value: unknown,
+  multiple?: boolean
+): string | string[] => {
+  if (multiple) {
+    return Array.isArray(value) ? value : [];
+  }
+  return (value as string) ?? "";
+};
+
+/**
  * Sample select field component.
  * This is a basic, unstyled implementation for testing and reference.
  * Supports dependsOn for cascading selects.
@@ -42,10 +56,15 @@ export const SelectField: SelectFieldComponent = ({
     ? getNestedValue(formValues, config.dependsOn)
     : null;
 
+  // Check if parent value is empty (null, undefined, or empty string)
+  // Avoid using !parentValue which treats valid falsy values (0, false) as empty
+  const isParentEmpty =
+    parentValue === null || parentValue === undefined || parentValue === "";
+
   // Filter options based on parent value (demo implementation)
   let options = config.options;
   if (config.dependsOn) {
-    if (!parentValue) {
+    if (isParentEmpty) {
       // No parent value - show no options
       options = [];
     } else if (field.name === "source.city") {
@@ -54,7 +73,7 @@ export const SelectField: SelectFieldComponent = ({
     }
   }
 
-  const isDisabled = Boolean(config.dependsOn && !parentValue);
+  const isDisabled = Boolean(config.dependsOn && isParentEmpty);
 
   return (
     <div className="field-wrapper">
@@ -72,7 +91,7 @@ export const SelectField: SelectFieldComponent = ({
         id={field.name}
         multiple={config.multiple}
         {...field}
-        value={field.value ?? ""}
+        value={getSelectValue(field.value, config.multiple)}
       >
         {!config.multiple && (
           <option value="">

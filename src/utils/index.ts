@@ -1,5 +1,6 @@
 export {
   calculateVisibility,
+  getUpdatedVisibility,
   type VisibilityState,
 } from "./calculateVisibility";
 export {

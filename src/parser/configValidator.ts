@@ -30,7 +30,14 @@ const baseFieldSchema = z.object({
   label: z.string().optional(),
   placeholder: z.string().optional(),
   defaultValue: z
-    .union([z.string(), z.number(), z.boolean(), z.null()])
+    .union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(z.unknown()),
+      z.record(z.string(), z.unknown()),
+    ])
     .optional(),
   validation: validationConfigSchema,
   visible: jsonLogicRuleSchema.optional(),
@@ -123,14 +130,24 @@ const customFieldSchema = baseFieldSchema.extend({
  * Array field element schema.
  * Contains repeatable group of fields.
  */
-const arrayFieldSchema = baseFieldSchema.extend({
-  type: z.literal("array"),
-  itemFields: z.lazy(() => z.array(fieldElementSchema)),
-  minItems: z.number().int().min(0).optional(),
-  maxItems: z.number().int().min(0).optional(),
-  addButtonLabel: z.string().optional(),
-  sortable: z.boolean().optional(),
-});
+const arrayFieldSchema = baseFieldSchema
+  .extend({
+    type: z.literal("array"),
+    itemFields: z.lazy(() => z.array(fieldElementSchema)),
+    minItems: z.number().int().min(0).optional(),
+    maxItems: z.number().int().min(0).optional(),
+    addButtonLabel: z.string().optional(),
+    sortable: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.minItems !== undefined && data.maxItems !== undefined) {
+        return data.minItems <= data.maxItems;
+      }
+      return true;
+    },
+    { message: "minItems must be less than or equal to maxItems" }
+  );
 
 /**
  * Field element schema - union of all field types.

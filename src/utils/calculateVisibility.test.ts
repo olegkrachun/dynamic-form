@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ContainerElement, FormElement, TextFieldElement } from "../types";
-import { calculateVisibility } from "./calculateVisibility";
+import {
+  calculateVisibility,
+  getUpdatedVisibility,
+} from "./calculateVisibility";
 
 describe("calculateVisibility", () => {
   describe("field visibility", () => {
@@ -414,5 +417,63 @@ describe("calculateVisibility", () => {
       expect(calculateVisibility(elements, { value: 0 }).test).toBe(false);
       expect(calculateVisibility(elements, { value: 1 }).test).toBe(true);
     });
+  });
+});
+
+describe("getUpdatedVisibility", () => {
+  it("should return prev when both are empty", () => {
+    const prev = {};
+    const next = {};
+
+    const result = getUpdatedVisibility(prev, next);
+
+    expect(result).toBe(prev);
+  });
+
+  it("should return prev when values are identical", () => {
+    const prev = { field1: true, field2: false };
+    const next = { field1: true, field2: false };
+
+    const result = getUpdatedVisibility(prev, next);
+
+    expect(result).toBe(prev);
+  });
+
+  it("should return next when a value changed", () => {
+    const prev = { field1: true, field2: false };
+    const next = { field1: true, field2: true };
+
+    const result = getUpdatedVisibility(prev, next);
+
+    expect(result).toBe(next);
+  });
+
+  it("should return next when new key is added", () => {
+    const prev = { field1: true };
+    const next = { field1: true, field2: false };
+
+    const result = getUpdatedVisibility(prev, next);
+
+    expect(result).toBe(next);
+  });
+
+  it("should return next when key is removed", () => {
+    const prev = { field1: true, field2: false };
+    const next = { field1: true };
+
+    const result = getUpdatedVisibility(prev, next);
+
+    expect(result).toBe(next);
+  });
+
+  it("should preserve reference equality when no change (React optimization)", () => {
+    const prev = { a: true, b: false, c: true };
+    const next = { a: true, b: false, c: true };
+
+    const result1 = getUpdatedVisibility(prev, next);
+    const result2 = getUpdatedVisibility(result1, next);
+
+    expect(result1).toBe(prev);
+    expect(result2).toBe(prev);
   });
 });

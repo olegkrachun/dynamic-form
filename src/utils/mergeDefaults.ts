@@ -125,6 +125,10 @@ const getTypeDefault = (field: FieldElement): unknown => {
   switch (field.type) {
     case "boolean":
       return false;
+    case "select":
+      return field.multiple ? [] : null;
+    case "array":
+      return [];
     case "text":
     case "email":
     case "phone":

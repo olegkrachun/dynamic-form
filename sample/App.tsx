@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   type CustomComponentRegistry,
   DynamicForm,
@@ -257,7 +257,10 @@ const sampleFormConfig: FormConfiguration = {
  */
 export function App() {
   const [submittedData, setSubmittedData] = useState<FormData | null>(null);
-  const [changeLog, setChangeLog] = useState<string[]>([]);
+  const [changeLog, setChangeLog] = useState<{ id: number; text: string }[]>(
+    []
+  );
+  const nextId = useRef(0);
 
   const handleSubmit = (data: FormData) => {
     console.log("Form submitted:", data);
@@ -266,9 +269,13 @@ export function App() {
 
   const handleChange = (data: FormData, changedField: string) => {
     console.log(`Field "${changedField}" changed:`, data);
+    const id = nextId.current++;
     setChangeLog((prev) => [
-      `${new Date().toLocaleTimeString()} - ${changedField} changed`,
-      ...prev.slice(0, 9), // Keep last 10 entries
+      {
+        id,
+        text: `${new Date().toLocaleTimeString()} - ${changedField} changed`,
+      },
+      ...prev.slice(0, 9),
     ]);
   };
 
@@ -327,7 +334,7 @@ export function App() {
             {changeLog.length > 0 ? (
               <ul className="change-log">
                 {changeLog.map((entry) => (
-                  <li key={entry}>{entry}</li>
+                  <li key={entry.id}>{entry.text}</li>
                 ))}
               </ul>
             ) : (
