@@ -1,10 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { ControllerFieldState, Resolver } from "react-hook-form";
-import type { ZodObject, ZodRawShape } from "zod";
+import type { ControllerFieldState } from "react-hook-form";
+import type {
+  CustomComponentDefinition,
+  CustomComponentRegistry,
+} from "../customComponents";
 import type { FieldElement, FormElement } from "./elements";
-
-/** Type alias for Zod schema used in DynamicForm validation */
-export type ZodSchema<T extends ZodRawShape = ZodRawShape> = ZodObject<T>;
 
 import type {
   FormData,
@@ -14,11 +14,7 @@ import type {
   OnSubmitHandler,
   OnValidationChangeHandler,
 } from "./events";
-import type {
-  CustomComponentRegistry,
-  CustomContainerRegistry,
-  FieldComponentRegistry,
-} from "./fields";
+import type { CustomContainerRegistry, FieldComponentRegistry } from "./fields";
 import type { InvisibleFieldValidation } from "./validation";
 
 /**
@@ -64,13 +60,8 @@ export type FieldWrapperFunction = (
   children: ReactNode
 ) => ReactNode;
 
-/**
- * Custom component definition for advanced configuration.
- */
-export interface CustomComponentDefinition {
-  /** Default props to apply to the custom component */
-  defaultProps?: Record<string, unknown>;
-}
+// Note: CustomComponentDefinition is exported from customComponents module
+// for full definition support with propsSchema validation
 
 /**
  * Root form configuration object.
@@ -141,36 +132,6 @@ export interface DynamicFormProps {
 
   /** Called on submission errors (validation failures) */
   onError?: OnErrorHandler;
-
-  /**
-   * Optional: Custom react-hook-form resolver for validation.
-   * Use this to provide validation with any library (Zod, Yup, Joi, custom).
-   * If not provided and no schema prop, form runs without validation.
-   *
-   * @example
-   * ```tsx
-   * import { zodResolver } from '@hookform/resolvers/zod';
-   * import { z } from 'zod';
-   *
-   * const mySchema = z.object({ name: z.string().min(1) });
-   * <DynamicForm resolver={zodResolver(mySchema)} ... />
-   * ```
-   */
-  resolver?: Resolver<FormData>;
-
-  /**
-   * Optional: Zod schema for validation (convenience prop).
-   * Internally creates a visibility-aware resolver from this schema.
-   * Ignored if `resolver` prop is provided.
-   *
-   * @example
-   * ```tsx
-   * import { z } from 'zod';
-   * const schema = z.object({ name: z.string().min(1) });
-   * <DynamicForm schema={schema} ... />
-   * ```
-   */
-  schema?: ZodSchema;
 
   /**
    * Validation mode for react-hook-form.

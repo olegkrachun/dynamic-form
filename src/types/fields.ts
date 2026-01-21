@@ -199,10 +199,8 @@ export interface FieldComponentRegistry
   array: ArrayFieldComponent;
 }
 
-/**
- * Registry for custom components referenced by name in configuration.
- */
-export type CustomComponentRegistry = Record<string, CustomFieldComponent>;
+// Note: CustomComponentRegistry is exported from customComponents module
+// for full definition support with propsSchema validation
 
 /**
  * Union type for all field props.

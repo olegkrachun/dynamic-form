@@ -10,6 +10,7 @@ import {
 import { FormProvider, useForm } from "react-hook-form";
 import { FormRenderer } from "./components";
 import { DynamicFormContext, type DynamicFormContextValue } from "./context";
+import { validateCustomComponents } from "./customComponents";
 import { parseConfiguration } from "./parser";
 import { createVisibilityAwareResolver } from "./resolver";
 import { generateZodSchema } from "./schema";
@@ -38,8 +39,6 @@ export const DynamicForm = ({
   onValidationChange,
   onReset,
   onError,
-  resolver: externalResolver,
-  schema: externalSchema,
   mode = "onChange",
   invisibleFieldValidation = "skip",
   className,
@@ -49,14 +48,16 @@ export const DynamicForm = ({
   fieldWrapper,
   ref,
 }: DynamicFormPropsWithRef): React.ReactElement => {
-  const parsedConfig = useMemo(() => parseConfiguration(config), [config]);
+  // Parse and validate configuration, including custom component props
+  const parsedConfig = useMemo(() => {
+    const parsed = parseConfiguration(config);
+    return validateCustomComponents(parsed, customComponents);
+  }, [config, customComponents]);
 
-  const internalZodSchema = useMemo(() => {
-    if (externalResolver || externalSchema) {
-      return null;
-    }
-    return generateZodSchema(parsedConfig);
-  }, [parsedConfig, externalResolver, externalSchema]);
+  const zodSchema = useMemo(
+    () => generateZodSchema(parsedConfig),
+    [parsedConfig]
+  );
 
   const defaultValues = useMemo(
     () => mergeDefaults(parsedConfig, initialData),
@@ -77,34 +78,15 @@ export const DynamicForm = ({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const resolver = useMemo(() => {
-    if (externalResolver) {
-      return externalResolver;
-    }
-
-    if (externalSchema) {
-      return createVisibilityAwareResolver({
-        schema: externalSchema,
+  const resolver = useMemo(
+    () =>
+      createVisibilityAwareResolver({
+        schema: zodSchema,
         getVisibility: () => visibilityRef.current,
         invisibleFieldValidation,
-      });
-    }
-
-    if (internalZodSchema) {
-      return createVisibilityAwareResolver({
-        schema: internalZodSchema,
-        getVisibility: () => visibilityRef.current,
-        invisibleFieldValidation,
-      });
-    }
-
-    return undefined;
-  }, [
-    externalResolver,
-    externalSchema,
-    internalZodSchema,
-    invisibleFieldValidation,
-  ]);
+      }),
+    [zodSchema, invisibleFieldValidation]
+  );
 
   const form = useForm<FormData>({ defaultValues, resolver, mode });
 

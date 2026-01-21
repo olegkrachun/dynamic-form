@@ -7,6 +7,11 @@ export type { DynamicFormContextValue } from "./context";
 // Context (for advanced use cases)
 // =============================================================================
 export { DynamicFormContext } from "./context";
+// =============================================================================
+// Custom Components (Phase 5)
+// =============================================================================
+export type { CustomComponentRenderProps } from "./customComponents";
+export { defineCustomComponent } from "./customComponents";
 // Main Component
 export { DynamicForm, default } from "./DynamicForm";
 // =============================================================================
@@ -119,7 +124,6 @@ export type {
   TextFieldElement,
   TextFieldProps,
   ValidationConfig,
-  ZodSchema,
 } from "./types";
 // Element type guards
 export {

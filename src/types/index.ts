@@ -1,14 +1,18 @@
 // Validation types
 
-// Configuration types
+// Custom component types (Phase 5)
 export type {
   CustomComponentDefinition,
+  CustomComponentRegistry,
+  CustomComponentRenderProps,
+} from "../customComponents";
+// Configuration types
+export type {
   DynamicFormProps,
   DynamicFormRef,
   FieldWrapperFunction,
   FieldWrapperProps,
   FormConfiguration,
-  ZodSchema,
 } from "./config";
 
 // Element types
@@ -66,7 +70,6 @@ export type {
   ColumnProps,
   ContainerComponent,
   ContainerProps,
-  CustomComponentRegistry,
   CustomContainerRegistry,
   CustomFieldComponent,
   CustomFieldProps,
