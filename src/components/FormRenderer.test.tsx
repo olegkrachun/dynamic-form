@@ -143,6 +143,10 @@ describe("FormRenderer", () => {
   });
 
   it("uses field name as key for field elements", () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {
+      // Suppress console output during test
+    });
+
     const config: FormConfiguration = {
       elements: [
         { type: "text", name: "field1", label: "Field 1" },
@@ -158,9 +162,16 @@ describe("FormRenderer", () => {
       />
     );
 
-    // Both fields should render without key warnings
+    // Verify no React key warnings were emitted
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining("key"),
+      expect.anything(),
+      expect.anything()
+    );
     expect(screen.getByTestId("field-field1")).toBeInTheDocument();
     expect(screen.getByTestId("field-field2")).toBeInTheDocument();
+
+    consoleSpy.mockRestore();
   });
 
   it("renders nested paths correctly", () => {

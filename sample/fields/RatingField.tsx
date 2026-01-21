@@ -86,16 +86,11 @@ const RatingFieldComponent = ({
 /**
  * Export the component definition with schema validation.
  * This enables parse-time validation of componentProps.
+ * Defaults are defined in ratingPropsSchema via .default() - no separate defaultProps needed.
  */
 export const RatingField = defineCustomComponent<RatingProps>({
   component: RatingFieldComponent,
   propsSchema: ratingPropsSchema,
-  defaultProps: {
-    maxStars: 5,
-    showValue: true,
-    filledChar: "★",
-    emptyChar: "☆",
-  },
   displayName: "RatingField",
   description: "A star rating input field with configurable max stars",
 });

@@ -112,7 +112,15 @@ export function getValidatedCustomElements(
   function collectFromElements(elements: FormElement[]): void {
     for (const element of elements) {
       if (isCustomElement(element)) {
-        results.push(element as ValidatedCustomElement);
+        const componentProps =
+          typeof element.componentProps === "object" &&
+          element.componentProps !== null
+            ? element.componentProps
+            : {};
+        results.push({
+          ...element,
+          componentProps: componentProps as Record<string, unknown>,
+        });
       } else if (isContainerElement(element)) {
         for (const column of element.columns) {
           collectFromElements(column.elements);

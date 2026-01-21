@@ -105,6 +105,13 @@ describe("ElementRenderer", () => {
         { type: "boolean", name: "bool", label: "Boolean" },
         { type: "phone", name: "phone", label: "Phone" },
         { type: "date", name: "date", label: "Date" },
+        { type: "select", name: "sel", label: "Select", options: [] },
+        {
+          type: "array",
+          name: "arr",
+          label: "Array",
+          itemFields: [{ type: "text", name: "item", label: "Item" }],
+        },
       ],
     };
 
@@ -121,6 +128,8 @@ describe("ElementRenderer", () => {
     expect(screen.getByTestId("field-bool")).toBeInTheDocument();
     expect(screen.getByTestId("field-phone")).toBeInTheDocument();
     expect(screen.getByTestId("field-date")).toBeInTheDocument();
+    expect(screen.getByTestId("field-sel")).toBeInTheDocument();
+    expect(screen.getByTestId("field-arr")).toBeInTheDocument();
   });
 
   it("renders multiple elements in order", () => {
@@ -140,8 +149,20 @@ describe("ElementRenderer", () => {
       />
     );
 
-    expect(screen.getByTestId("field-first")).toBeInTheDocument();
-    expect(screen.getByTestId("field-second")).toBeInTheDocument();
-    expect(screen.getByTestId("field-third")).toBeInTheDocument();
+    const first = screen.getByTestId("field-first");
+    const second = screen.getByTestId("field-second");
+    const third = screen.getByTestId("field-third");
+
+    expect(first).toBeInTheDocument();
+    expect(second).toBeInTheDocument();
+    expect(third).toBeInTheDocument();
+
+    // Verify DOM order
+    expect(first.compareDocumentPosition(second)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(second.compareDocumentPosition(third)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
   });
 });

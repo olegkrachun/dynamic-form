@@ -81,6 +81,8 @@ export function isCustomElement(
     typeof element === "object" &&
     element !== null &&
     "type" in element &&
-    (element as { type: string }).type === "custom"
+    (element as { type: string }).type === "custom" &&
+    "component" in element &&
+    typeof (element as { component: unknown }).component === "string"
   );
 }

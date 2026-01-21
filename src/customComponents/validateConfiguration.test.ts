@@ -108,6 +108,11 @@ describe("validateCustomComponents", () => {
     expect(() => validateCustomComponents(config, registry)).toThrow(
       ConfigurationError
     );
+    expect(() => validateCustomComponents(config, registry)).toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining("NonExistent"),
+      })
+    );
   });
 
   it("works with empty registry", () => {

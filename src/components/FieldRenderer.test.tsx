@@ -238,11 +238,15 @@ describe("FieldRenderer", () => {
           config={config}
           fieldComponents={mockFieldComponents}
           fieldWrapper={fieldWrapper}
+          initialData={{ stateful: "test-value" }}
           onSubmit={vi.fn()}
         />
       );
 
       expect(screen.getByTestId("wrapper-stateful")).toBeInTheDocument();
+      expect(screen.getByTestId("wrapper-value")).toHaveTextContent(
+        "test-value"
+      );
     });
   });
 });

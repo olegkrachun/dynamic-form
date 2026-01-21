@@ -97,6 +97,7 @@ describe("validateCustomElement", () => {
   });
 
   it("includes available components in error message", () => {
+    expect.assertions(2);
     const element: CustomFieldElement = {
       type: "custom",
       name: "unknown",
@@ -114,6 +115,7 @@ describe("validateCustomElement", () => {
   });
 
   it("shows empty registry message when no components registered", () => {
+    expect.assertions(1);
     const element: CustomFieldElement = {
       type: "custom",
       name: "test",
@@ -130,6 +132,7 @@ describe("validateCustomElement", () => {
   });
 
   it("includes error path in validation errors", () => {
+    expect.assertions(2);
     const element: CustomFieldElement = {
       type: "custom",
       name: "rating",
