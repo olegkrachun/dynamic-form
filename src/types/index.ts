@@ -1,14 +1,24 @@
 // Validation types
 
-// Configuration types
+// Custom component types (Phase 5)
 export type {
   CustomComponentDefinition,
+  CustomComponentRegistry,
+  CustomComponentRenderProps,
+} from "../customComponents";
+// Configuration types
+export type {
   DynamicFormProps,
+  DynamicFormRef,
+  FieldWrapperFunction,
+  FieldWrapperProps,
   FormConfiguration,
 } from "./config";
 
 // Element types
 export type {
+  ApiOptionsSource,
+  ArrayFieldElement,
   BooleanFieldElement,
   ColumnElement,
   ContainerElement,
@@ -20,11 +30,19 @@ export type {
   FieldType,
   FormElement,
   LayoutElement,
+  MapOptionsSource,
+  OptionsSource,
   PhoneFieldElement,
+  ResolverOptionsSource,
+  SearchOptionsSource,
+  SelectFieldElement,
+  SelectOption,
+  StaticOptionsSource,
   TextFieldElement,
 } from "./elements";
 
 export {
+  isArrayFieldElement,
   isColumnElement,
   isContainerElement,
   isCustomFieldElement,
@@ -41,6 +59,8 @@ export type {
 } from "./events";
 // Field component types
 export type {
+  ArrayFieldComponent,
+  ArrayFieldProps,
   BaseFieldComponent,
   BaseFieldProps,
   BooleanFieldComponent,
@@ -50,7 +70,6 @@ export type {
   ColumnProps,
   ContainerComponent,
   ContainerProps,
-  CustomComponentRegistry,
   CustomContainerRegistry,
   CustomFieldComponent,
   CustomFieldProps,
@@ -62,6 +81,8 @@ export type {
   FieldProps,
   PhoneFieldComponent,
   PhoneFieldProps,
+  SelectFieldComponent,
+  SelectFieldProps,
   TextFieldComponent,
   TextFieldProps,
 } from "./fields";

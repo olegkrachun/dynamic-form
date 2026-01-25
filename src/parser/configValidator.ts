@@ -30,10 +30,19 @@ const baseFieldSchema = z.object({
   label: z.string().optional(),
   placeholder: z.string().optional(),
   defaultValue: z
-    .union([z.string(), z.number(), z.boolean(), z.null()])
+    .union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(z.unknown()),
+      z.record(z.string(), z.unknown()),
+    ])
     .optional(),
   validation: validationConfigSchema,
   visible: jsonLogicRuleSchema.optional(),
+  dependsOn: z.string().optional(),
+  resetOnParentChange: z.boolean().optional(),
 });
 
 /**
@@ -72,6 +81,55 @@ const dateFieldSchema = baseFieldSchema.extend({
 });
 
 /**
+ * Select option schema.
+ */
+const selectOptionSchema = z.object({
+  value: z.union([z.string(), z.number()]),
+  label: z.string(),
+  disabled: z.boolean().optional(),
+});
+
+/**
+ * Options source schema - describes how to resolve options.
+ */
+const optionsSourceSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("static") }),
+  z.object({ type: z.literal("map"), key: z.string() }),
+  z.object({ type: z.literal("api"), endpoint: z.string() }),
+  z.object({
+    type: z.literal("search"),
+    endpoint: z.string(),
+    minChars: z.number().optional(),
+  }),
+  z.object({ type: z.literal("resolver"), name: z.string() }),
+]);
+
+/**
+ * Select field element schema.
+ * Options are required when optionsSource is not provided.
+ */
+const selectFieldSchema = baseFieldSchema
+  .extend({
+    type: z.literal("select"),
+    options: z.array(selectOptionSchema).optional(),
+    optionsSource: optionsSourceSchema.optional(),
+    multiple: z.boolean().optional(),
+    clearable: z.boolean().optional(),
+    searchable: z.boolean().optional(),
+    creatable: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      // Options are required when no optionsSource is provided or when using static source
+      if (!data.optionsSource || data.optionsSource.type === "static") {
+        return data.options !== undefined && data.options.length >= 0;
+      }
+      return true;
+    },
+    { message: "Options are required when optionsSource is not provided" }
+  );
+
+/**
  * Custom field element schema.
  */
 const customFieldSchema = baseFieldSchema.extend({
@@ -81,15 +139,40 @@ const customFieldSchema = baseFieldSchema.extend({
 });
 
 /**
+ * Array field element schema.
+ * Contains repeatable group of fields.
+ */
+const arrayFieldSchema = baseFieldSchema
+  .extend({
+    type: z.literal("array"),
+    itemFields: z.lazy(() => z.array(fieldElementSchema)),
+    minItems: z.number().int().min(0).optional(),
+    maxItems: z.number().int().min(0).optional(),
+    addButtonLabel: z.string().optional(),
+    sortable: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.minItems !== undefined && data.maxItems !== undefined) {
+        return data.minItems <= data.maxItems;
+      }
+      return true;
+    },
+    { message: "minItems must be less than or equal to maxItems" }
+  );
+
+/**
  * Field element schema - union of all field types.
  */
-const fieldElementSchema = z.discriminatedUnion("type", [
+const fieldElementSchema: z.ZodType<unknown> = z.discriminatedUnion("type", [
   textFieldSchema,
   emailFieldSchema,
   booleanFieldSchema,
   phoneFieldSchema,
   dateFieldSchema,
+  selectFieldSchema,
   customFieldSchema,
+  arrayFieldSchema,
 ]);
 
 /**
@@ -154,11 +237,11 @@ export type ParsedFormConfiguration = z.infer<typeof formConfigurationSchema>;
  * @returns Validated and typed configuration
  * @throws ZodError if validation fails
  */
-export function validateConfiguration(
+export const validateConfiguration = (
   config: unknown
-): ParsedFormConfiguration {
+): ParsedFormConfiguration => {
   return formConfigurationSchema.parse(config);
-}
+};
 
 /**
  * Safely validates a form configuration object without throwing.
@@ -166,6 +249,6 @@ export function validateConfiguration(
  * @param config - Configuration object to validate
  * @returns Result object with success status and data or error
  */
-export function safeValidateConfiguration(config: unknown) {
+export const safeValidateConfiguration = (config: unknown) => {
   return formConfigurationSchema.safeParse(config);
-}
+};

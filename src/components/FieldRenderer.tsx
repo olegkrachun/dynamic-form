@@ -1,50 +1,81 @@
 import { useController } from "react-hook-form";
 import type { StandardFieldComponentType } from "@/types/fields";
+import {
+  type CustomComponentRenderProps,
+  normalizeComponentDefinition,
+} from "../customComponents";
 import { useDynamicFormContext } from "../hooks";
 import type {
   BaseFieldComponent,
-  CustomFieldComponent,
+  CustomFieldElement,
   FieldElement,
+  FormData,
 } from "../types";
 import { isCustomFieldElement } from "../types";
 
-/**
- * Props for the FieldRenderer component.
- */
 export interface FieldRendererProps {
-  /** Field element configuration */
   config: FieldElement;
 }
 
-const CustomFieldRenderer: CustomFieldComponent = ({
+interface InternalFieldRendererProps {
+  config: FieldElement;
+  field: ReturnType<typeof useController>["field"];
+  fieldState: ReturnType<typeof useController>["fieldState"];
+  formValues: FormData;
+  setValue: (name: string, value: unknown) => void;
+}
+
+const CustomFieldRenderer = ({
   config,
   field,
   fieldState,
-}) => {
+  formValues,
+  setValue,
+}: InternalFieldRendererProps) => {
   const { customComponents } = useDynamicFormContext();
 
-  const FieldComponent = customComponents[
-    config.component
-  ] as CustomFieldComponent;
+  if (config.type !== "custom") {
+    return null;
+  }
 
-  if (!FieldComponent) {
+  const customConfig = config as CustomFieldElement;
+  const entry = customComponents[customConfig.component];
+
+  if (!entry) {
     console.warn(
-      `No custom component registered for: "${config.component}". ` +
+      `No custom component registered for: "${customConfig.component}". ` +
         "Make sure to pass it in the customComponents prop."
     );
     return null;
   }
 
+  const definition = normalizeComponentDefinition(
+    entry,
+    customConfig.component
+  );
+  const FieldComponent = definition.component as React.ComponentType<
+    CustomComponentRenderProps<Record<string, unknown>>
+  >;
+
   return (
-    <FieldComponent config={config} field={field} fieldState={fieldState} />
+    <FieldComponent
+      componentProps={customConfig.componentProps ?? {}}
+      config={customConfig}
+      field={field}
+      fieldState={fieldState}
+      formValues={formValues}
+      setValue={setValue}
+    />
   );
 };
 
-const StandardFieldRenderer: BaseFieldComponent = ({
+const StandardFieldRenderer = ({
   config,
   field,
   fieldState,
-}) => {
+  formValues,
+  setValue,
+}: InternalFieldRendererProps) => {
   const { fieldComponents } = useDynamicFormContext();
   const FieldComponent = fieldComponents[
     config.type as StandardFieldComponentType
@@ -59,66 +90,71 @@ const StandardFieldRenderer: BaseFieldComponent = ({
   }
 
   return (
-    <FieldComponent config={config} field={field} fieldState={fieldState} />
+    <FieldComponent
+      config={config}
+      field={field}
+      fieldState={fieldState}
+      formValues={formValues}
+      setValue={setValue}
+    />
   );
 };
 
-/**
- * Renders a single field using the registered field component.
- *
- * This component:
- * 1. Gets the react-hook-form controller for the field
- * 2. Resolves the appropriate field component from the registry
- * 3. Passes the controller props (field, fieldState) to the component
- *
- * @example
- * ```tsx
- * // Used internally by ElementRenderer
- * <FieldRenderer config={{ type: 'text', name: 'source.name', label: 'Name' }} />
- * ```
- */
 export const FieldRenderer: React.FC<FieldRendererProps> = ({ config }) => {
-  const { form, visibility, fieldComponents } = useDynamicFormContext();
+  const { form, visibility, fieldWrapper } = useDynamicFormContext();
 
-  // Get controller from react-hook-form (must be called before any early returns)
   const { field, fieldState } = useController({
     name: config.name,
     control: form.control,
   });
 
-  // Check visibility (Phase 4 - for now all fields are visible)
   const isVisible = visibility[config.name] !== false;
   if (!isVisible) {
     return null;
   }
 
+  const formValues = form.getValues();
+  const setValue = (name: string, value: unknown) => form.setValue(name, value);
+
+  let fieldElement: React.ReactNode;
+
   if (isCustomFieldElement(config)) {
-    return (
+    fieldElement = (
       <CustomFieldRenderer
         config={config}
         field={field}
         fieldState={fieldState}
+        formValues={formValues}
+        setValue={setValue}
+      />
+    );
+  } else {
+    fieldElement = (
+      <StandardFieldRenderer
+        config={config}
+        field={field}
+        fieldState={fieldState}
+        formValues={formValues}
+        setValue={setValue}
       />
     );
   }
 
-  const FieldComponent = fieldComponents[config.type];
-
-  if (!FieldComponent) {
-    console.warn(
-      `No field component registered for type: "${config.type}". ` +
-        "Make sure to provide all field types in the fieldComponents prop."
+  if (fieldWrapper) {
+    return fieldWrapper(
+      {
+        name: config.name,
+        config,
+        fieldState,
+        value: field.value,
+        formValues,
+        setValue,
+      },
+      fieldElement
     );
-    return null;
   }
 
-  return (
-    <StandardFieldRenderer
-      config={config}
-      field={field}
-      fieldState={fieldState}
-    />
-  );
+  return fieldElement;
 };
 
 FieldRenderer.displayName = "FieldRenderer";

@@ -2,16 +2,48 @@
 
 Configuration-driven form generation library for React with react-hook-form and Zod integration.
 
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration Reference](#configuration-reference)
+  - [FormConfiguration](#formconfiguration)
+  - [Field Types](#field-types)
+  - [Validation Configuration](#validation-configuration)
+  - [Container Layout](#container-layout)
+- [Usage Examples](#usage-examples)
+  - [Nested Field Paths](#nested-field-paths)
+  - [Two-Column Layout](#two-column-layout)
+  - [Custom Field Component](#custom-field-component)
+  - [JSON Logic Conditional Validation](#json-logic-conditional-validation)
+- [API Reference](#api-reference)
+  - [DynamicForm Props](#dynamicform-props)
+  - [Validation Options](#validation-options)
+  - [Hooks](#hooks)
+  - [Exports](#exports)
+- [Creating Field Components](#creating-field-components)
+- [Development](#development)
+- [Tech Stack](#tech-stack)
+- [License](#license)
+
+---
+
 ## Overview
 
 Dynamic Forms enables rapid deployment of data collection forms by defining form structures, validations, and display logic through declarative JSON configurations. Instead of writing custom form components for each use case, describe your form as data and let the library handle rendering and validation.
 
 **Key Benefits:**
 - Define forms as JSON configuration
-- Type-safe validation with Zod v4
+- Flexible validation: external resolver, Zod schema, or config-driven
 - Full react-hook-form integration
 - Nested field paths with dot notation
-- Conditional validation with JSON Logic
+- Conditional visibility and validation with JSON Logic
+- Field dependencies with cascading resets
+- Select fields with static/dynamic options
+- Array fields for repeatable groups
 - Extensible component architecture
 
 ## Installation
@@ -128,7 +160,9 @@ The library supports the following built-in field types:
 | `boolean` | Checkbox or toggle | `boolean` |
 | `phone` | Telephone number input | `string` |
 | `date` | Date picker | `string` |
-| `custom` | User-defined component | `any` |
+| `select` | Dropdown/multi-select with options | `string \| string[]` |
+| `array` | Repeatable field groups | `array` |
+| `custom` | User-defined component | `unknown` |
 
 ### Field Element Structure
 
@@ -238,25 +272,25 @@ const config: FormConfiguration = {
 
 ### Custom Field Component
 
-Register custom components for specialized inputs:
+Register custom components for specialized inputs. You can use simple components or fully typed definitions with Zod schema validation:
 
 ```tsx
-import type { CustomFieldComponent, CustomComponentRegistry } from 'dynamic-forms';
+import {
+  defineCustomComponent,
+  type CustomComponentRegistry,
+  type CustomComponentRenderProps,
+} from 'dynamic-forms';
+import { z } from 'zod/v4';
 
-// Define a custom rating field
-const RatingField: CustomFieldComponent = ({ field, config }) => {
-  const maxStars = (config.componentProps?.maxStars as number) ?? 5;
-
+// Option 1: Simple component
+const SimpleRating = ({ field, config, componentProps }: CustomComponentRenderProps) => {
+  const maxStars = (componentProps?.maxStars as number) ?? 5;
   return (
     <div>
       <label>{config.label}</label>
       <div>
         {Array.from({ length: maxStars }, (_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => field.onChange(i + 1)}
-          >
+          <button key={i} type="button" onClick={() => field.onChange(i + 1)}>
             {i < (field.value ?? 0) ? '★' : '☆'}
           </button>
         ))}
@@ -265,8 +299,27 @@ const RatingField: CustomFieldComponent = ({ field, config }) => {
   );
 };
 
+// Option 2: Type-safe definition with Zod schema validation
+const RatingField = defineCustomComponent({
+  component: ({ field, componentProps }) => (
+    <div className="rating">
+      {Array.from({ length: componentProps.maxStars }, (_, i) => (
+        <button key={i} type="button" onClick={() => field.onChange(i + 1)}>
+          {i < (field.value as number ?? 0) ? '★' : '☆'}
+        </button>
+      ))}
+    </div>
+  ),
+  propsSchema: z.object({
+    maxStars: z.number().int().min(1).max(10).default(5),
+  }),
+  defaultProps: { maxStars: 5 },
+  displayName: 'RatingField',
+});
+
 // Register custom components
 const customComponents: CustomComponentRegistry = {
+  SimpleRating,
   RatingField,
 };
 
@@ -278,7 +331,7 @@ const config: FormConfiguration = {
       name: "rating",
       label: "Rate our service",
       component: "RatingField",
-      componentProps: { maxStars: 5 },
+      componentProps: { maxStars: 10 }, // Validated against propsSchema
     },
   ],
 };
@@ -353,21 +406,51 @@ interface DynamicFormProps {
   fieldComponents: FieldComponentRegistry;      // Component implementations
   onSubmit: (data: FormData) => void;          // Submit handler
 
-  // Optional
+  // Optional - Validation (priority order: resolver > schema > config-driven)
+  resolver?: Resolver<FormData>;                // Custom react-hook-form resolver (Yup, Joi, etc.)
+  schema?: ZodSchema;                           // External Zod schema (wrapped with visibility-aware resolver)
+
+  // Optional - Components
   initialData?: FormData;                       // Pre-fill form values
   customComponents?: CustomComponentRegistry;   // Custom field components
   customContainers?: CustomContainerRegistry;   // Custom layout containers
+
+  // Optional - Event handlers
   onChange?: (data: FormData, field: string) => void;
   onError?: (errors: unknown) => void;
   onReset?: () => void;
   onValidationChange?: (errors: unknown, isValid: boolean) => void;
+
+  // Optional - Form behavior
   mode?: "onChange" | "onBlur" | "onSubmit" | "onTouched" | "all";
   invisibleFieldValidation?: "skip" | "validate" | "warn";
+  fieldWrapper?: FieldWrapperFunction;          // Wrap each field with custom component
+
+  // Optional - HTML attributes
   className?: string;
   style?: CSSProperties;
   id?: string;
   children?: React.ReactNode;                   // Submit button, etc.
 }
+```
+
+### Validation Options
+
+The library supports three approaches to validation:
+
+```tsx
+// Option 1: External resolver (full control - Yup, Joi, Vest, custom)
+import { yupResolver } from '@hookform/resolvers/yup';
+<DynamicForm resolver={yupResolver(yupSchema)} ... />
+
+// Option 2: External Zod schema (wrapped with visibility-aware resolver)
+<DynamicForm schema={myZodSchema} invisibleFieldValidation="skip" ... />
+
+// Option 3: Config-driven (auto-generated from field validation configs)
+<DynamicForm config={configWithValidation} ... />
+
+// Option 4: No validation (omit resolver, schema, and validation in config)
+<DynamicForm config={simpleConfig} ... />
 ```
 
 ### Hooks
@@ -401,6 +484,12 @@ export { DynamicForm } from 'dynamic-forms';
 // Hooks
 export { useDynamicFormContext, useDynamicFormContextSafe } from 'dynamic-forms';
 
+// Custom Components
+export {
+  defineCustomComponent,        // Type-safe component definition helper
+  ConfigurationError,           // Error class for invalid configurations
+} from 'dynamic-forms';
+
 // Types
 export type {
   FormConfiguration,
@@ -413,12 +502,23 @@ export type {
   CustomComponentRegistry,
   CustomContainerRegistry,
   FormData,
+  ZodSchema,
+  // Custom component types
+  CustomComponentDefinition,
+  CustomComponentRenderProps,
+  // Field component types
   TextFieldComponent,
   EmailFieldComponent,
   BooleanFieldComponent,
   PhoneFieldComponent,
   DateFieldComponent,
+  SelectFieldComponent,
+  ArrayFieldComponent,
   CustomFieldComponent,
+  // Field element types
+  SelectFieldElement,
+  ArrayFieldElement,
+  SelectOption,
 } from 'dynamic-forms';
 
 // Utilities
@@ -426,6 +526,8 @@ export {
   parseConfiguration,
   safeParseConfiguration,
   generateZodSchema,
+  createVisibilityAwareResolver,
+  calculateVisibility,
   flattenFields,
   getFieldNames,
   mergeDefaults,
@@ -435,6 +537,7 @@ export {
   isContainerElement,
   isColumnElement,
   isCustomFieldElement,
+  isArrayFieldElement,
 } from 'dynamic-forms';
 ```
 

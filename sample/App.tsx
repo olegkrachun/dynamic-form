@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   type CustomComponentRegistry,
   DynamicForm,
@@ -97,6 +97,135 @@ const sampleFormConfig: FormConfiguration = {
         },
       ],
     },
+    // =========================================================================
+    // Select Fields - Dependent selects (country -> city)
+    // =========================================================================
+    {
+      type: "container",
+      columns: [
+        {
+          type: "column",
+          width: "calc(50% - 0.5rem)",
+          elements: [
+            {
+              type: "select",
+              name: "source.country",
+              label: "Country",
+              options: [
+                { value: "ua", label: "Ukraine" },
+                { value: "us", label: "United States" },
+                { value: "de", label: "Germany" },
+                { value: "pl", label: "Poland" },
+              ],
+              clearable: true,
+              searchable: true,
+            },
+          ],
+        },
+        {
+          type: "column",
+          width: "calc(50% - 0.5rem)",
+          elements: [
+            {
+              type: "select",
+              name: "source.city",
+              label: "City",
+              dependsOn: "source.country",
+              resetOnParentChange: true,
+              // Options would be filtered by country in real app via optionsSource resolver
+              options: [
+                // Ukraine
+                { value: "kyiv", label: "Kyiv" },
+                { value: "lviv", label: "Lviv" },
+                { value: "odesa", label: "Odesa" },
+                // US
+                { value: "nyc", label: "New York" },
+                { value: "la", label: "Los Angeles" },
+                { value: "chicago", label: "Chicago" },
+                // Germany
+                { value: "berlin", label: "Berlin" },
+                { value: "munich", label: "Munich" },
+                // Poland
+                { value: "warsaw", label: "Warsaw" },
+                { value: "krakow", label: "Krakow" },
+              ],
+              clearable: true,
+              searchable: true,
+            },
+          ],
+        },
+      ],
+    },
+    // =========================================================================
+    // Visibility Test - Checkbox hides second field
+    // =========================================================================
+    {
+      type: "container",
+      columns: [
+        {
+          type: "column",
+          width: "calc(50% - 0.5rem)",
+          elements: [
+            {
+              type: "boolean",
+              name: "source.showNickname",
+              label: "Show nickname field",
+              defaultValue: true,
+            },
+          ],
+        },
+        {
+          type: "column",
+          width: "calc(50% - 0.5rem)",
+          elements: [
+            {
+              type: "text",
+              name: "source.nickname",
+              label: "Nickname",
+              placeholder: "Enter your nickname",
+              // Visibility controlled by checkbox
+              visible: { "==": [{ var: "source.showNickname" }, true] },
+            },
+          ],
+        },
+      ],
+    },
+    // =========================================================================
+    // Array Field - Contacts list with add/remove
+    // =========================================================================
+    {
+      type: "array",
+      name: "source.contacts",
+      label: "Additional Contacts",
+      itemFields: [
+        {
+          type: "text",
+          name: "contactName",
+          label: "Contact Name",
+          placeholder: "Name",
+          validation: { required: true },
+        },
+        {
+          type: "email",
+          name: "contactEmail",
+          label: "Contact Email",
+          placeholder: "email@example.com",
+        },
+        {
+          type: "select",
+          name: "contactType",
+          label: "Contact Type",
+          options: [
+            { value: "work", label: "Work" },
+            { value: "personal", label: "Personal" },
+            { value: "emergency", label: "Emergency" },
+          ],
+        },
+      ],
+      minItems: 0,
+      maxItems: 5,
+      addButtonLabel: "Add Contact",
+    },
     {
       type: "text",
       name: "source.company",
@@ -128,7 +257,10 @@ const sampleFormConfig: FormConfiguration = {
  */
 export function App() {
   const [submittedData, setSubmittedData] = useState<FormData | null>(null);
-  const [changeLog, setChangeLog] = useState<string[]>([]);
+  const [changeLog, setChangeLog] = useState<{ id: number; text: string }[]>(
+    []
+  );
+  const nextId = useRef(0);
 
   const handleSubmit = (data: FormData) => {
     console.log("Form submitted:", data);
@@ -137,9 +269,13 @@ export function App() {
 
   const handleChange = (data: FormData, changedField: string) => {
     console.log(`Field "${changedField}" changed:`, data);
+    const id = nextId.current++;
     setChangeLog((prev) => [
-      `${new Date().toLocaleTimeString()} - ${changedField} changed`,
-      ...prev.slice(0, 9), // Keep last 10 entries
+      {
+        id,
+        text: `${new Date().toLocaleTimeString()} - ${changedField} changed`,
+      },
+      ...prev.slice(0, 9),
     ]);
   };
 
@@ -152,8 +288,8 @@ export function App() {
       <header className="header">
         <h1>Dynamic Form Library - Sample</h1>
         <p>
-          Phase 1-3: Field rendering, container layouts, and JSON Logic
-          validation
+          Phase 1-5: Field rendering, layouts, validation, visibility, select,
+          arrays
         </p>
       </header>
 
@@ -198,7 +334,7 @@ export function App() {
             {changeLog.length > 0 ? (
               <ul className="change-log">
                 {changeLog.map((entry) => (
-                  <li key={entry}>{entry}</li>
+                  <li key={entry.id}>{entry.text}</li>
                 ))}
               </ul>
             ) : (

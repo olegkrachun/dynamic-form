@@ -1,5 +1,11 @@
-import type { CSSProperties } from "react";
-import type { FormElement } from "./elements";
+import type { CSSProperties, ReactNode } from "react";
+import type { ControllerFieldState } from "react-hook-form";
+import type {
+  CustomComponentDefinition,
+  CustomComponentRegistry,
+} from "../customComponents";
+import type { FieldElement, FormElement } from "./elements";
+
 import type {
   FormData,
   OnChangeHandler,
@@ -8,20 +14,54 @@ import type {
   OnSubmitHandler,
   OnValidationChangeHandler,
 } from "./events";
-import type {
-  CustomComponentRegistry,
-  CustomContainerRegistry,
-  FieldComponentRegistry,
-} from "./fields";
+import type { CustomContainerRegistry, FieldComponentRegistry } from "./fields";
 import type { InvisibleFieldValidation } from "./validation";
 
 /**
- * Custom component definition for advanced configuration.
+ * Props passed to the fieldWrapper function.
+ * Contains field metadata for custom wrapper implementations.
  */
-export interface CustomComponentDefinition {
-  /** Default props to apply to the custom component */
-  defaultProps?: Record<string, unknown>;
+export interface FieldWrapperProps {
+  /** Field path (e.g., "contact.email") */
+  name: string;
+
+  /** Raw field configuration from form config */
+  config: FieldElement;
+
+  /** react-hook-form field state (error, isDirty, isTouched, invalid) */
+  fieldState: ControllerFieldState;
+
+  /** Current field value */
+  value: unknown;
+
+  /** All current form values (for reading other fields) */
+  formValues: FormData;
+
+  /** Set any field value (for dependent field logic) */
+  setValue: (name: string, value: unknown) => void;
 }
+
+/**
+ * Function type for wrapping field components.
+ * Receives field metadata and the rendered field element.
+ *
+ * @example
+ * ```tsx
+ * const myFieldWrapper: FieldWrapperFunction = (props, children) => (
+ *   <div className="field-wrapper">
+ *     <Badge>{props.name}</Badge>
+ *     {children}
+ *   </div>
+ * );
+ * ```
+ */
+export type FieldWrapperFunction = (
+  props: FieldWrapperProps,
+  children: ReactNode
+) => ReactNode;
+
+// Note: CustomComponentDefinition is exported from customComponents module
+// for full definition support with propsSchema validation
 
 /**
  * Root form configuration object.
@@ -104,7 +144,8 @@ export interface DynamicFormProps {
   mode?: "onChange" | "onBlur" | "onSubmit" | "onTouched" | "all";
 
   /**
-   * Controls validation behavior for invisible fields (Phase 3).
+   * Controls validation behavior for invisible fields.
+   * Only applies when using `schema` prop (not custom `resolver`).
    * - 'skip': Do not validate invisible fields (default)
    * - 'validate': Validate all fields regardless of visibility
    * - 'warn': Validate but treat errors as warnings (non-blocking)
@@ -122,4 +163,60 @@ export interface DynamicFormProps {
 
   /** Content to render after all form fields (e.g., submit button) */
   children?: React.ReactNode;
+
+  /**
+   * Optional wrapper function for each field.
+   * Receives field metadata and children, returns wrapped element.
+   * Use this for adding confidence indicators, status badges, edit tracking, etc.
+   *
+   * @example
+   * ```tsx
+   * <DynamicForm
+   *   fieldWrapper={(props, children) => (
+   *     <div className="field-wrapper">
+   *       <Badge>{props.config.label}</Badge>
+   *       {children}
+   *     </div>
+   *   )}
+   * />
+   * ```
+   */
+  fieldWrapper?: FieldWrapperFunction;
+}
+
+/**
+ * Ref interface for external form control.
+ * Access form methods from outside the component.
+ *
+ * @example
+ * ```tsx
+ * const formRef = useRef<DynamicFormRef>(null);
+ *
+ * // Reset city when country changes externally
+ * const handleCountryChange = (country: string) => {
+ *   formRef.current?.setValue('country', country);
+ *   formRef.current?.setValue('city', null);
+ * };
+ *
+ * <DynamicForm ref={formRef} ... />
+ * ```
+ */
+export interface DynamicFormRef {
+  /** Get all form values */
+  getValues: () => FormData;
+
+  /** Set a specific field value */
+  setValue: (name: string, value: unknown) => void;
+
+  /** Watch all form values reactively */
+  watchAll: () => FormData;
+
+  /** Watch a specific field value reactively */
+  watchField: (name: string) => unknown;
+
+  /** Reset form to initial values or provided values */
+  reset: (values?: FormData) => void;
+
+  /** Trigger validation for a specific field or all fields */
+  trigger: (name?: string) => Promise<boolean>;
 }
