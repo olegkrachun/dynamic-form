@@ -34,7 +34,7 @@ This guide sets up automated versioning, changelog generation, and npm publishin
 
 ### Step 3: Create GitHub Actions Workflow
 
-Create `.github/workflows/release.yml`:
+Create `.github/workflows/release.yaml`:
 
 ```yaml
 name: Release
@@ -152,7 +152,7 @@ release-please determines version bumps from commit messages:
 
 ### Commit Message Format
 
-```
+```text
 <type>(<optional scope>): <description>
 
 [optional body]
@@ -293,11 +293,11 @@ If `.release-please-manifest.json` version doesn't match `package.json`:
 
 After setup, your repo should have:
 
-```
+```text
 your-repo/
 ├── .github/
 │   └── workflows/
-│       └── release.yml
+│       └── release.yaml
 ├── .release-please-manifest.json
 ├── release-please-config.json
 ├── CHANGELOG.md (created automatically on first release)

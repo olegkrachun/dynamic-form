@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Configuration-driven form generation library for React",
   "author": "Oleh Krachun",
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/olegkrachun/dynamic-forms.git"

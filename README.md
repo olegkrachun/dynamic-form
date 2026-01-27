@@ -594,7 +594,7 @@ pnpm lint:fix     # Auto-fix lint errors
 
 ### Project Structure
 
-```
+```text
 src/
 ├── components/          # React components
 │   ├── FormRenderer     # Renders all elements
@@ -653,7 +653,7 @@ Create branches using the format: `type/description`
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated versioning and changelog generation.
 
 **Format:**
-```
+```text
 type(scope): description
 
 [optional body]
