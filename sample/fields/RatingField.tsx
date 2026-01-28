@@ -1,25 +1,33 @@
-import type {
-  CustomComponentDefinition,
-  CustomComponentRenderProps,
+import { z } from "zod/v4";
+import {
+  type CustomComponentRenderProps,
+  defineCustomComponent,
 } from "../../src";
 
-type RatingProps = {
+/**
+ * Props schema for RatingField.
+ * Validates componentProps at parse time via Phase 5 integration.
+ */
+const ratingPropsSchema = z.object({
   /** Maximum number of stars (1-10) */
-  maxStars: number;
+  maxStars: z.number().int().min(1).max(10).default(5),
   /** Whether to show numeric value next to stars */
-  showValue: boolean;
+  showValue: z.boolean().default(true),
   /** Custom filled star character */
-  filledChar: string;
+  filledChar: z.string().default("★"),
   /** Custom empty star character */
-  emptyChar: string;
-} & Record<string, unknown>;
+  emptyChar: z.string().default("☆"),
+});
+
+type RatingProps = z.infer<typeof ratingPropsSchema>;
 
 /**
- * Custom Rating Field - demonstrates custom component integration.
+ * Custom Rating Field - demonstrates Phase 5 custom component integration.
  *
- * This component uses the CustomComponentRenderProps pattern where:
+ * This component uses the new CustomComponentRenderProps pattern where:
+ * - componentProps are validated at form parse time
  * - defaultProps are automatically merged
- * - componentProps are passed through from configuration
+ * - Props are typed via Zod schema inference
  *
  * @example Config usage:
  * ```json
@@ -76,18 +84,15 @@ const RatingFieldComponent = ({
 };
 
 /**
- * Export the component definition with default props.
+ * Export the component definition with schema validation.
+ * This enables parse-time validation of componentProps.
+ * Defaults are defined in ratingPropsSchema via .default() - no separate defaultProps needed.
  */
-export const RatingField: CustomComponentDefinition<RatingProps> = {
+export const RatingField = defineCustomComponent<RatingProps>({
   component: RatingFieldComponent,
-  defaultProps: {
-    maxStars: 5,
-    showValue: true,
-    filledChar: "★",
-    emptyChar: "☆",
-  },
+  propsSchema: ratingPropsSchema,
   displayName: "RatingField",
   description: "A star rating input field with configurable max stars",
-};
+});
 
 export default RatingField;
