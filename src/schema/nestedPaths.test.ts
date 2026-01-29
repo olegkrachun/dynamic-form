@@ -47,6 +47,20 @@ describe("setNestedSchema", () => {
     expect(sourceShape.name instanceof z.ZodString).toBe(true);
     expect(sourceShape.email).toBeDefined();
   });
+
+  it("should create nested objects with passthrough", () => {
+    const shape: Record<string, z.ZodTypeAny> = {};
+    setNestedSchema(shape, "source.name", z.string());
+
+    const sourceSchema = shape.source as z.ZodObject<any>;
+    // Verify passthrough by parsing with extra properties
+    const result = sourceSchema.safeParse({ name: "John", extra: "kept" });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({ name: "John", extra: "kept" });
+    }
+  });
 });
 
 describe("getNestedSchema", () => {
