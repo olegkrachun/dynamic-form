@@ -36,7 +36,7 @@ export const setNestedSchema = (
 
   // If this level doesn't exist, create an empty object schema
   if (!shape[first]) {
-    shape[first] = z.object({});
+    shape[first] = z.looseObject({});
   }
 
   // Get the current schema at this level
@@ -46,12 +46,12 @@ export const setNestedSchema = (
   if (existingSchema instanceof ZodObject) {
     const innerShape: Record<string, ZodTypeAny> = { ...existingSchema.shape };
     setNestedSchema(innerShape, remainingPath, schema);
-    shape[first] = z.object(innerShape);
+    shape[first] = z.looseObject(innerShape);
   } else {
     // If it's not an object (shouldn't happen in normal use), create new
     const innerShape: Record<string, ZodTypeAny> = {};
     setNestedSchema(innerShape, remainingPath, schema);
-    shape[first] = z.object(innerShape);
+    shape[first] = z.looseObject(innerShape);
   }
 };
 

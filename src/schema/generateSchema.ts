@@ -100,7 +100,8 @@ export const generateZodSchema = (
   }
 
   // Create base schema
-  let schema: ZodObject<Record<string, ZodTypeAny>> = z.object(schemaShape);
+  let schema: ZodObject<Record<string, ZodTypeAny>> =
+    z.looseObject(schemaShape);
 
   // Collect JSON Logic conditions from fields
   const conditions = collectConditions(fields);

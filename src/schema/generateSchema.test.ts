@@ -292,6 +292,67 @@ describe("generateZodSchema", () => {
     });
   });
 
+  describe("passthrough (preserves unknown properties)", () => {
+    it("should preserve unknown root-level properties", () => {
+      const config: FormConfiguration = {
+        elements: [{ type: "text", name: "name" }],
+      };
+
+      const schema = generateZodSchema(config);
+      const result = schema.safeParse({ name: "John", extraField: "kept" });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({ name: "John", extraField: "kept" });
+      }
+    });
+
+    it("should preserve unknown nested properties", () => {
+      const config: FormConfiguration = {
+        elements: [{ type: "text", name: "source.name" }],
+      };
+
+      const schema = generateZodSchema(config);
+      const result = schema.safeParse({
+        source: { name: "John", unknownProp: 42 },
+        topLevelExtra: true,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({
+          source: { name: "John", unknownProp: 42 },
+          topLevelExtra: true,
+        });
+      }
+    });
+
+    it("should still validate known fields while preserving unknowns", () => {
+      const config: FormConfiguration = {
+        elements: [
+          {
+            type: "text",
+            name: "name",
+            validation: { required: true },
+          },
+        ],
+      };
+
+      const schema = generateZodSchema(config);
+
+      // Known field still validated
+      const failResult = schema.safeParse({ name: "", extra: "data" });
+      expect(failResult.success).toBe(false);
+
+      // Valid known field + unknown preserved
+      const passResult = schema.safeParse({ name: "John", extra: "data" });
+      expect(passResult.success).toBe(true);
+      if (passResult.success) {
+        expect(passResult.data).toEqual({ name: "John", extra: "data" });
+      }
+    });
+  });
+
   describe("array field schema", () => {
     it("should generate schema for array field with itemFields", () => {
       const config: FormConfiguration = {
