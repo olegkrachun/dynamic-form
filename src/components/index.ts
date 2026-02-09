@@ -8,3 +8,5 @@ export type { FieldRendererProps } from "./FieldRenderer";
 export { FieldRenderer } from "./FieldRenderer";
 export type { FormRendererProps } from "./FormRenderer";
 export { FormRenderer } from "./FormRenderer";
+export type { SectionRendererProps } from "./SectionRenderer";
+export { SectionRenderer } from "./SectionRenderer";

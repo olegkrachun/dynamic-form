@@ -5,6 +5,7 @@ import type { JsonLogicRule, ValidationConfig } from "./validation";
  * Phase 1: text, email, boolean, phone, date, custom
  * Phase 2 adds: container, column
  * Phase 3 adds: select, array
+ * Phase 4 adds: section
  */
 export type ElementType =
   | "text"
@@ -16,6 +17,7 @@ export type ElementType =
   | "array"
   | "container"
   | "column"
+  | "section"
   | "custom";
 
 /**
@@ -264,6 +266,29 @@ export interface ColumnElement {
 }
 
 /**
+ * Section element for grouping fields with a header (Phase 4).
+ * Wraps child elements in a section with title and optional icon.
+ */
+export interface SectionElement {
+  type: "section";
+
+  /** Unique identifier for the section (used for navigation) */
+  id: string;
+
+  /** Section title displayed in the header */
+  title: string;
+
+  /** Optional icon name (implementation depends on consumer) */
+  icon?: string;
+
+  /** Nested elements within the section */
+  children: FormElement[];
+
+  /** Conditional visibility rules using JSON Logic */
+  visible?: JsonLogicRule;
+}
+
+/**
  * Union of all field element types.
  */
 export type FieldElement =
@@ -279,7 +304,7 @@ export type FieldElement =
 /**
  * Union of all layout element types.
  */
-export type LayoutElement = ContainerElement | ColumnElement;
+export type LayoutElement = ContainerElement | ColumnElement | SectionElement;
 
 /**
  * Union of all form element types.
@@ -326,3 +351,10 @@ export const isColumnElement = (
 export const isCustomFieldElement = (
   element: FormElement
 ): element is CustomFieldElement => element.type === "custom";
+
+/**
+ * Type guard to check if an element is a section element.
+ */
+export const isSectionElement = (
+  element: FormElement
+): element is SectionElement => element.type === "section";

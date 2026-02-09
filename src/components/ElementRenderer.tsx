@@ -1,8 +1,14 @@
 import type React from "react";
 import type { FormElement } from "../types";
-import { isColumnElement, isContainerElement, isFieldElement } from "../types";
+import {
+  isColumnElement,
+  isContainerElement,
+  isFieldElement,
+  isSectionElement,
+} from "../types";
 import { ContainerRenderer } from "./ContainerRenderer";
 import { FieldRenderer } from "./FieldRenderer";
+import { SectionRenderer } from "./SectionRenderer";
 
 /**
  * Props for the ElementRenderer component.
@@ -37,6 +43,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({
   // Field elements - render with FieldRenderer
   if (isFieldElement(element)) {
     return <FieldRenderer config={element} />;
+  }
+
+  // Section elements - Phase 4
+  if (isSectionElement(element)) {
+    return <SectionRenderer config={element} />;
   }
 
   // Container elements - Phase 2

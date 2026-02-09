@@ -14,7 +14,11 @@ import type {
   OnSubmitHandler,
   OnValidationChangeHandler,
 } from "./events";
-import type { CustomContainerRegistry, FieldComponentRegistry } from "./fields";
+import type {
+  CustomContainerRegistry,
+  FieldComponentRegistry,
+  SectionComponent,
+} from "./fields";
 import type { InvisibleFieldValidation } from "./validation";
 
 /**
@@ -182,6 +186,24 @@ export interface DynamicFormProps {
    * ```
    */
   fieldWrapper?: FieldWrapperFunction;
+
+  /**
+   * Optional section component for rendering section elements.
+   * Section elements wrap groups of fields with a header.
+   *
+   * @example
+   * ```tsx
+   * <DynamicForm
+   *   sectionComponent={({ config, children }) => (
+   *     <fieldset id={config.id}>
+   *       <legend>{config.title}</legend>
+   *       {children}
+   *     </fieldset>
+   *   )}
+   * />
+   * ```
+   */
+  sectionComponent?: SectionComponent;
 }
 
 /**

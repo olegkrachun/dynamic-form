@@ -164,6 +164,7 @@ The library supports the following built-in field types:
 | `select` | Dropdown/multi-select with options | `string \| string[]` |
 | `array` | Repeatable field groups | `array` |
 | `custom` | User-defined component | `unknown` |
+| `section` | Visual grouping with header | N/A (layout element) |
 
 ### Field Element Structure
 
@@ -189,6 +190,70 @@ interface ValidationConfig {
   message?: string;                // Custom error message
   condition?: JsonLogicRule;       // JSON Logic condition
 }
+```
+
+### Section Elements
+
+Group related fields with visual section headers:
+
+```typescript
+interface SectionElement {
+  type: "section";
+  id: string;                      // Section identifier (used for navigation anchors)
+  title: string;                   // Section header title
+  icon?: string;                   // Optional icon identifier
+  children: FormElement[];         // Fields within the section
+}
+```
+
+Example configuration:
+
+```typescript
+const config: FormConfiguration = {
+  elements: [
+    {
+      type: "section",
+      id: "personal-info",
+      title: "Personal Information",
+      icon: "user",
+      children: [
+        { type: "text", name: "firstName", label: "First Name" },
+        { type: "text", name: "lastName", label: "Last Name" },
+        { type: "email", name: "email", label: "Email" },
+      ],
+    },
+    {
+      type: "section",
+      id: "address",
+      title: "Address",
+      icon: "location",
+      children: [
+        { type: "text", name: "street", label: "Street" },
+        { type: "text", name: "city", label: "City" },
+      ],
+    },
+  ],
+};
+```
+
+Custom section component:
+
+```tsx
+const MySectionComponent: SectionComponent = ({ id, title, icon, children }) => (
+  <fieldset id={id} className="my-section">
+    <legend>
+      {icon && <Icon name={icon} />}
+      <span>{title}</span>
+    </legend>
+    <div className="section-content">{children}</div>
+  </fieldset>
+);
+
+<DynamicForm
+  config={config}
+  sectionComponent={MySectionComponent}
+  ...
+/>
 ```
 
 ### Container Layout
@@ -423,6 +488,7 @@ interface DynamicFormProps {
   mode?: "onChange" | "onBlur" | "onSubmit" | "onTouched" | "all";
   invisibleFieldValidation?: "skip" | "validate" | "warn";
   fieldWrapper?: FieldWrapperFunction;          // Wrap each field with custom component
+  sectionComponent?: SectionComponent;          // Custom section header component
 
   // Optional - HTML attributes
   className?: string;
@@ -529,6 +595,10 @@ export type {
   SelectFieldElement,
   ArrayFieldElement,
   SelectOption,
+  // Section types
+  SectionElement,
+  SectionComponent,
+  SectionProps,
 } from 'rhf-dynamic-forms';
 
 // Utilities
@@ -549,6 +619,7 @@ export {
   isColumnElement,
   isCustomFieldElement,
   isArrayFieldElement,
+  isSectionElement,
 } from 'rhf-dynamic-forms';
 ```
 
@@ -586,6 +657,21 @@ const TextField: TextFieldComponent = ({ field, fieldState, config }) => {
     </div>
   );
 };
+```
+
+## Redux Integration
+
+The library handles frozen state objects from Redux automatically. When passing `initialData` from Redux state, the library deep clones all arrays and objects to prevent "Cannot assign to read only property" errors.
+
+```tsx
+const frozenData = useAppSelector(state => state.form.data);
+
+// Safe to use directly - library handles cloning
+<DynamicForm
+  config={config}
+  initialData={frozenData}  // Automatically deep cloned
+  onSubmit={handleSubmit}
+/>
 ```
 
 ## Development

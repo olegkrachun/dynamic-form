@@ -35,6 +35,7 @@ export type {
   PhoneFieldElement,
   ResolverOptionsSource,
   SearchOptionsSource,
+  SectionElement,
   SelectFieldElement,
   SelectOption,
   StaticOptionsSource,
@@ -47,6 +48,7 @@ export {
   isContainerElement,
   isCustomFieldElement,
   isFieldElement,
+  isSectionElement,
 } from "./elements";
 // Event types
 export type {
@@ -81,6 +83,9 @@ export type {
   FieldProps,
   PhoneFieldComponent,
   PhoneFieldProps,
+  // Section component types (Phase 4)
+  SectionComponent,
+  SectionProps,
   SelectFieldComponent,
   SelectFieldProps,
   TextFieldComponent,

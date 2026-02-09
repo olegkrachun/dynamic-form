@@ -115,6 +115,10 @@ export type {
   PhoneFieldProps,
   ResolverOptionsSource,
   SearchOptionsSource,
+  // Section types (Phase 4)
+  SectionComponent,
+  SectionElement,
+  SectionProps,
   SelectFieldComponent,
   SelectFieldElement,
   SelectFieldProps,
@@ -132,6 +136,7 @@ export {
   isContainerElement,
   isCustomFieldElement,
   isFieldElement,
+  isSectionElement,
 } from "./types";
 // =============================================================================
 // Utilities (for advanced use cases)

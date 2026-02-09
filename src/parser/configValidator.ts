@@ -24,26 +24,29 @@ const validationConfigSchema = z
 
 /**
  * Base field element schema (common properties).
+ * Uses catchall() to preserve custom properties like fieldClassName.
  */
-const baseFieldSchema = z.object({
-  name: z.string().min(1, "Field name is required"),
-  label: z.string().optional(),
-  placeholder: z.string().optional(),
-  defaultValue: z
-    .union([
-      z.string(),
-      z.number(),
-      z.boolean(),
-      z.null(),
-      z.array(z.unknown()),
-      z.record(z.string(), z.unknown()),
-    ])
-    .optional(),
-  validation: validationConfigSchema,
-  visible: jsonLogicRuleSchema.optional(),
-  dependsOn: z.string().optional(),
-  resetOnParentChange: z.boolean().optional(),
-});
+const baseFieldSchema = z
+  .object({
+    name: z.string().min(1, "Field name is required"),
+    label: z.string().optional(),
+    placeholder: z.string().optional(),
+    defaultValue: z
+      .union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(z.unknown()),
+        z.record(z.string(), z.unknown()),
+      ])
+      .optional(),
+    validation: validationConfigSchema,
+    visible: jsonLogicRuleSchema.optional(),
+    dependsOn: z.string().optional(),
+    resetOnParentChange: z.boolean().optional(),
+  })
+  .catchall(z.unknown());
 
 /**
  * Text field element schema.
@@ -139,6 +142,19 @@ const customFieldSchema = baseFieldSchema.extend({
 });
 
 /**
+ * Forward declaration for formElementSchema (used in recursive schemas).
+ * This allows columnElementSchema and sectionElementSchema to reference it.
+ */
+const formElementSchema: z.ZodType<unknown> = z.lazy(() =>
+  z.union([
+    fieldElementSchema,
+    columnElementSchema,
+    containerElementSchema,
+    sectionElementSchema,
+  ])
+);
+
+/**
  * Array field element schema.
  * Contains repeatable group of fields.
  */
@@ -176,17 +192,6 @@ const fieldElementSchema: z.ZodType<unknown> = z.discriminatedUnion("type", [
 ]);
 
 /**
- * Form element schema - for Phase 1, only field elements are supported.
- * Phase 2 will add container and column schemas.
- *
- * We use a lazy schema to allow for future recursive definitions
- * (containers containing columns containing elements).
- */
-const formElementSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.union([fieldElementSchema, containerElementSchema, columnElementSchema])
-);
-
-/**
  * Column element schema (for Phase 2, but defined here for type completeness).
  */
 const columnElementSchema = z.object({
@@ -198,7 +203,7 @@ const columnElementSchema = z.object({
 
 /**
  * Container element schema (for Phase 2).
- * Uses passthrough() to preserve custom properties like containerMeta.
+ * Uses catchall() to preserve custom properties like containerMeta.
  */
 const containerElementSchema = z
   .object({
@@ -206,7 +211,20 @@ const containerElementSchema = z
     columns: z.array(columnElementSchema),
     visible: jsonLogicRuleSchema.optional(),
   })
-  .passthrough();
+  .catchall(z.unknown());
+
+/**
+ * Section element schema (for Phase 4).
+ * Wraps child elements with a section header.
+ */
+const sectionElementSchema = z.object({
+  type: z.literal("section"),
+  id: z.string().min(1, "Section id is required"),
+  title: z.string().min(1, "Section title is required"),
+  icon: z.string().optional(),
+  children: z.array(z.lazy(() => formElementSchema)),
+  visible: jsonLogicRuleSchema.optional(),
+});
 
 /**
  * Custom component definition schema.

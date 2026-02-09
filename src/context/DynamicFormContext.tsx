@@ -7,6 +7,7 @@ import type {
   FieldWrapperFunction,
   FormConfiguration,
   FormData,
+  SectionComponent,
 } from "../types";
 
 /**
@@ -55,6 +56,12 @@ export interface DynamicFormContextValue {
    * When provided, every field is wrapped with this function.
    */
   fieldWrapper?: FieldWrapperFunction;
+
+  /**
+   * Optional section component for rendering section elements.
+   * When provided, section elements use this component for layout.
+   */
+  sectionComponent?: SectionComponent;
 }
 
 /**

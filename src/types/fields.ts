@@ -15,6 +15,7 @@ import type {
   ElementType,
   EmailFieldElement,
   PhoneFieldElement,
+  SectionElement,
   SelectFieldElement,
   TextFieldElement,
 } from "./elements";
@@ -264,3 +265,23 @@ export type ColumnComponent = React.ComponentType<ColumnProps>;
  * ```
  */
 export type CustomContainerRegistry = Record<string, ContainerComponent>;
+
+// ============================================================================
+// Section Component Types (Phase 4)
+// ============================================================================
+
+/**
+ * Props for section components.
+ * Sections wrap groups of fields with a header.
+ */
+export interface SectionProps {
+  /** Section configuration from form config */
+  config: SectionElement;
+  /** Nested form elements rendered as children */
+  children: React.ReactNode;
+}
+
+/**
+ * Component type for section layouts.
+ */
+export type SectionComponent = React.ComponentType<SectionProps>;
