@@ -14,9 +14,11 @@ Configuration-driven form generation library for React with react-hook-form and 
   - [Field Types](#field-types)
   - [Validation Configuration](#validation-configuration)
   - [Container Layout](#container-layout)
+  - [Section Containers](#section-containers)
 - [Usage Examples](#usage-examples)
   - [Nested Field Paths](#nested-field-paths)
   - [Two-Column Layout](#two-column-layout)
+  - [Section Layout](#section-layout)
   - [Custom Field Component](#custom-field-component)
   - [JSON Logic Conditional Validation](#json-logic-conditional-validation)
 - [API Reference](#api-reference)
@@ -25,6 +27,7 @@ Configuration-driven form generation library for React with react-hook-form and 
   - [Hooks](#hooks)
   - [Exports](#exports)
 - [Creating Field Components](#creating-field-components)
+- [Creating Custom Containers](#creating-custom-containers)
 - [Development](#development)
 - [Tech Stack](#tech-stack)
 - [Contributing](#contributing)
@@ -45,6 +48,7 @@ Dynamic Forms enables rapid deployment of data collection forms by defining form
 - Field dependencies with cascading resets
 - Select fields with static/dynamic options
 - Array fields for repeatable groups
+- Section containers with custom variants
 - Extensible component architecture
 
 ## Installation
@@ -66,7 +70,7 @@ npm install react@^19 react-dom@^19
 ## Quick Start
 
 ```tsx
-import { DynamicForm, type FormConfiguration, type FieldComponentRegistry } from 'dynamic-forms';
+import { DynamicForm, type FormConfiguration, type FieldComponentRegistry } from 'rhf-dynamic-forms';
 
 // 1. Define your form configuration
 const config: FormConfiguration = {
@@ -164,7 +168,7 @@ The library supports the following built-in field types:
 | `select` | Dropdown/multi-select with options | `string \| string[]` |
 | `array` | Repeatable field groups | `array` |
 | `custom` | User-defined component | `unknown` |
-| `section` | Visual grouping with header | N/A (layout element) |
+| `container` | Layout container (columns or sections) | N/A (layout element) |
 
 ### Field Element Structure
 
@@ -176,6 +180,9 @@ interface FieldElement {
   placeholder?: string;            // Placeholder text
   defaultValue?: string | number | boolean | null;
   validation?: ValidationConfig;   // Validation rules
+  visible?: JsonLogicRule;         // Conditional visibility
+  dependsOn?: string;              // Field dependency for cascading
+  resetOnParentChange?: boolean;   // Reset when parent changes
 }
 ```
 
@@ -192,73 +199,33 @@ interface ValidationConfig {
 }
 ```
 
-### Section Elements
-
-Group related fields with visual section headers:
-
-```typescript
-interface SectionElement {
-  type: "section";
-  id: string;                      // Section identifier (used for navigation anchors)
-  title: string;                   // Section header title
-  icon?: string;                   // Optional icon identifier
-  children: FormElement[];         // Fields within the section
-}
-```
-
-Example configuration:
-
-```typescript
-const config: FormConfiguration = {
-  elements: [
-    {
-      type: "section",
-      id: "personal-info",
-      title: "Personal Information",
-      icon: "user",
-      children: [
-        { type: "text", name: "firstName", label: "First Name" },
-        { type: "text", name: "lastName", label: "Last Name" },
-        { type: "email", name: "email", label: "Email" },
-      ],
-    },
-    {
-      type: "section",
-      id: "address",
-      title: "Address",
-      icon: "location",
-      children: [
-        { type: "text", name: "street", label: "Street" },
-        { type: "text", name: "city", label: "City" },
-      ],
-    },
-  ],
-};
-```
-
-Custom section component:
-
-```tsx
-const MySectionComponent: SectionComponent = ({ id, title, icon, children }) => (
-  <fieldset id={id} className="my-section">
-    <legend>
-      {icon && <Icon name={icon} />}
-      <span>{title}</span>
-    </legend>
-    <div className="section-content">{children}</div>
-  </fieldset>
-);
-
-<DynamicForm
-  config={config}
-  sectionComponent={MySectionComponent}
-  ...
-/>
-```
-
 ### Container Layout
 
 Create multi-column layouts with containers:
+
+```typescript
+interface ContainerElement {
+  type: "container";
+  variant?: string;                // Container variant (default, section, custom)
+  columns?: ColumnElement[];       // For column-based layouts
+  children?: FormElement[];        // For section-based layouts
+  visible?: JsonLogicRule;         // Conditional visibility
+
+  // Section-specific properties (when variant: 'section')
+  id?: string;                     // Section identifier
+  title?: string;                  // Section header title
+  icon?: string;                   // Optional icon identifier
+}
+
+interface ColumnElement {
+  type: "column";
+  width: string;                   // Column width (e.g., "50%", "200px")
+  elements: FormElement[];         // Fields within the column
+  visible?: JsonLogicRule;         // Conditional visibility
+}
+```
+
+**Column-based container example:**
 
 ```typescript
 {
@@ -280,6 +247,66 @@ Create multi-column layouts with containers:
     },
   ],
 }
+```
+
+### Section Containers
+
+Sections are containers with `variant: 'section'` that use `children` instead of `columns`:
+
+```typescript
+{
+  type: "container",
+  variant: "section",
+  id: "personal-info",
+  title: "Personal Information",
+  icon: "faUser",
+  children: [
+    { type: "text", name: "firstName", label: "First Name" },
+    { type: "text", name: "lastName", label: "Last Name" },
+    { type: "email", name: "email", label: "Email" },
+  ],
+}
+```
+
+**Full form with sections:**
+
+```typescript
+const config: FormConfiguration = {
+  elements: [
+    {
+      type: "container",
+      variant: "section",
+      id: "personal-info",
+      title: "Personal Information",
+      icon: "faUser",
+      children: [
+        {
+          type: "container",
+          columns: [
+            { type: "column", width: "50%", elements: [
+              { type: "text", name: "firstName", label: "First Name" }
+            ]},
+            { type: "column", width: "50%", elements: [
+              { type: "text", name: "lastName", label: "Last Name" }
+            ]},
+          ],
+        },
+        { type: "email", name: "email", label: "Email" },
+      ],
+    },
+    {
+      type: "container",
+      variant: "section",
+      id: "address",
+      title: "Address",
+      icon: "faLocation",
+      children: [
+        { type: "text", name: "street", label: "Street" },
+        { type: "text", name: "city", label: "City" },
+      ],
+    },
+  ],
+};
 ```
 
 ## Usage Examples
@@ -316,7 +343,7 @@ const config: FormConfiguration = {
       columns: [
         {
           type: "column",
-          width: "calc(50% - 0.5rem)", // Account for gap
+          width: "50%",
           elements: [
             { type: "email", name: "email", label: "Email", validation: { required: true } },
             { type: "date", name: "birthDate", label: "Birth Date" },
@@ -324,7 +351,7 @@ const config: FormConfiguration = {
         },
         {
           type: "column",
-          width: "calc(50% - 0.5rem)",
+          width: "50%",
           elements: [
             { type: "phone", name: "phone", label: "Phone" },
             { type: "text", name: "company", label: "Company" },
@@ -336,16 +363,51 @@ const config: FormConfiguration = {
 };
 ```
 
+### Section Layout
+
+```typescript
+import type { ContainerComponent, CustomContainerRegistry } from 'rhf-dynamic-forms';
+
+// Custom section component
+const MySection: ContainerComponent = ({ config, children }) => (
+  <fieldset id={config.id} className="my-section">
+    <legend>
+      {config.icon && <Icon name={config.icon} />}
+      <span>{config.title}</span>
+    </legend>
+    <div className="section-content">{children}</div>
+  </fieldset>
+);
+
+// Default container (for column layouts)
+const MyGridContainer: ContainerComponent = ({ config, children }) => (
+  <div className="grid-container">{children}</div>
+);
+
+// Register containers by variant
+const customContainers: CustomContainerRegistry = {
+  default: MyGridContainer,  // Used for containers without variant
+  section: MySection,        // Used for containers with variant: 'section'
+};
+
+<DynamicForm
+  config={config}
+  fieldComponents={fieldComponents}
+  customContainers={customContainers}
+  onSubmit={handleSubmit}
+/>
+```
+
 ### Custom Field Component
 
-Register custom components for specialized inputs. You can use simple components or fully typed definitions with Zod schema validation:
+Register custom components for specialized inputs:
 
 ```tsx
 import {
   defineCustomComponent,
   type CustomComponentRegistry,
   type CustomComponentRenderProps,
-} from 'dynamic-forms';
+} from 'rhf-dynamic-forms';
 import { z } from 'zod/v4';
 
 // Option 1: Simple component
@@ -397,12 +459,11 @@ const config: FormConfiguration = {
       name: "rating",
       label: "Rate our service",
       component: "RatingField",
-      componentProps: { maxStars: 10 }, // Validated against propsSchema
+      componentProps: { maxStars: 10 },
     },
   ],
 };
 
-// Pass to DynamicForm
 <DynamicForm
   config={config}
   fieldComponents={fieldComponents}
@@ -428,7 +489,6 @@ const config: FormConfiguration = {
       name: "phone",
       label: "Phone Number",
       validation: {
-        // Valid if: hasPhone is false OR phone matches 10-digit pattern
         condition: {
           or: [
             { "!": { var: "hasPhone" } },
@@ -441,16 +501,6 @@ const config: FormConfiguration = {
           ],
         },
         message: "Please enter a valid 10-digit phone number",
-      },
-    },
-    {
-      type: "boolean",
-      name: "acceptTerms",
-      label: "I accept the terms and conditions",
-      validation: {
-        // Checkbox must be checked
-        condition: { var: "acceptTerms" },
-        message: "You must accept the terms and conditions",
       },
     },
   ],
@@ -472,7 +522,6 @@ interface DynamicFormProps {
   fieldComponents: FieldComponentRegistry;      // Component implementations
   onSubmit: (data: FormData) => void;          // Submit handler
 
-
   // Optional - Components
   initialData?: FormData;                       // Pre-fill form values
   customComponents?: CustomComponentRegistry;   // Custom field components
@@ -487,14 +536,13 @@ interface DynamicFormProps {
   // Optional - Form behavior
   mode?: "onChange" | "onBlur" | "onSubmit" | "onTouched" | "all";
   invisibleFieldValidation?: "skip" | "validate" | "warn";
-  fieldWrapper?: FieldWrapperFunction;          // Wrap each field with custom component
-  sectionComponent?: SectionComponent;          // Custom section header component
+  fieldWrapper?: FieldWrapperFunction;          // Wrap each field
 
   // Optional - HTML attributes
   className?: string;
   style?: CSSProperties;
   id?: string;
-  children?: React.ReactNode;                   // Submit button, etc.
+  children?: React.ReactNode;
   ref?: React.Ref<DynamicFormRef>;
 }
 ```
@@ -540,6 +588,17 @@ interface BaseFieldProps {
 }
 ```
 
+### Container Component Props
+
+Custom container components receive:
+
+```typescript
+interface ContainerProps {
+  config: ContainerElement;         // Container configuration (id, title, icon, etc.)
+  children: React.ReactNode;        // Rendered children (columns or elements)
+}
+```
+
 ### Exports
 
 ```typescript
@@ -550,15 +609,13 @@ export { DynamicForm, DynamicFormContext } from 'rhf-dynamic-forms';
 export { useDynamicFormContext, useDynamicFormContextSafe } from 'rhf-dynamic-forms';
 
 // Custom Components
-export {
-  defineCustomComponent,        // Type-safe component definition helper
-} from 'rhf-dynamic-forms';
+export { defineCustomComponent } from 'rhf-dynamic-forms';
 
 // Parser
 export {
   parseConfiguration,
   safeParseConfiguration,
-  ConfigurationError,           // Error class for invalid configurations
+  ConfigurationError,
 } from 'rhf-dynamic-forms';
 
 // Types
@@ -569,19 +626,30 @@ export type {
   FieldElement,
   ContainerElement,
   ColumnElement,
+  LayoutElement,
   ValidationConfig,
   FormData,
+
   // Component props
   DynamicFormProps,
   DynamicFormRef,
   DynamicFormContextValue,
+
   // Registry types
   FieldComponentRegistry,
   CustomComponentRegistry,
   CustomContainerRegistry,
+
+  // Container types
+  ContainerComponent,
+  ContainerProps,
+  ColumnComponent,
+  ColumnProps,
+
   // Custom component types
   CustomComponentDefinition,
   CustomComponentRenderProps,
+
   // Field component types
   TextFieldComponent,
   EmailFieldComponent,
@@ -591,14 +659,11 @@ export type {
   SelectFieldComponent,
   ArrayFieldComponent,
   CustomFieldComponent,
+
   // Field element types
   SelectFieldElement,
   ArrayFieldElement,
   SelectOption,
-  // Section types
-  SectionElement,
-  SectionComponent,
-  SectionProps,
 } from 'rhf-dynamic-forms';
 
 // Utilities
@@ -613,22 +678,23 @@ export {
   setNestedValue,
   applyJsonLogic,
   evaluateCondition,
+
   // Type guards
   isFieldElement,
   isContainerElement,
   isColumnElement,
   isCustomFieldElement,
   isArrayFieldElement,
-  isSectionElement,
+  isSectionContainer,
 } from 'rhf-dynamic-forms';
 ```
 
 ## Creating Field Components
 
-Field components are React components that render form inputs. They receive react-hook-form controller props for state management.
+Field components are React components that render form inputs:
 
 ```tsx
-import type { TextFieldComponent } from 'dynamic-forms';
+import type { TextFieldComponent } from 'rhf-dynamic-forms';
 
 const TextField: TextFieldComponent = ({ field, fieldState, config }) => {
   return (
@@ -645,23 +711,67 @@ const TextField: TextFieldComponent = ({ field, fieldState, config }) => {
         type="text"
         placeholder={config.placeholder}
         aria-invalid={fieldState.invalid}
-        aria-describedby={fieldState.error ? `${field.name}-error` : undefined}
         {...field}
       />
 
       {fieldState.error && (
-        <span id={`${field.name}-error`} role="alert">
-          {fieldState.error.message}
-        </span>
+        <span role="alert">{fieldState.error.message}</span>
       )}
     </div>
   );
 };
 ```
 
+## Creating Custom Containers
+
+Custom containers control layout for different container variants:
+
+```tsx
+import type { ContainerComponent, CustomContainerRegistry } from 'rhf-dynamic-forms';
+
+// Section container with header
+const Section: ContainerComponent = ({ config, children }) => (
+  <section id={config.id} aria-labelledby={`${config.id}-title`}>
+    <header>
+      {config.icon && <Icon name={config.icon} />}
+      <h2 id={`${config.id}-title`}>{config.title}</h2>
+    </header>
+    <div className="section-body">{children}</div>
+  </section>
+);
+
+// Grid container for columns
+const GridContainer: ContainerComponent = ({ config, children }) => {
+  const gridTemplate = config.columns
+    ?.map(col => col.width)
+    .join(' ') ?? '1fr';
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: gridTemplate, gap: '1rem' }}>
+      {children}
+    </div>
+  );
+};
+
+// Card container (custom variant)
+const CardContainer: ContainerComponent = ({ config, children }) => (
+  <div className="card">
+    {config.title && <h3>{config.title}</h3>}
+    {children}
+  </div>
+);
+
+// Register by variant name
+const customContainers: CustomContainerRegistry = {
+  default: GridContainer,   // variant: undefined or 'default'
+  section: Section,         // variant: 'section'
+  card: CardContainer,      // variant: 'card'
+};
+```
+
 ## Redux Integration
 
-The library handles frozen state objects from Redux automatically. When passing `initialData` from Redux state, the library deep clones all arrays and objects to prevent "Cannot assign to read only property" errors.
+The library handles frozen state objects from Redux automatically:
 
 ```tsx
 const frozenData = useAppSelector(state => state.form.data);
@@ -669,7 +779,7 @@ const frozenData = useAppSelector(state => state.form.data);
 // Safe to use directly - library handles cloning
 <DynamicForm
   config={config}
-  initialData={frozenData}  // Automatically deep cloned
+  initialData={frozenData}
   onSubmit={handleSubmit}
 />
 ```
@@ -696,13 +806,15 @@ src/
 │   ├── FormRenderer     # Renders all elements
 │   ├── ElementRenderer  # Routes to field/container
 │   ├── FieldRenderer    # Renders fields via registry
-│   └── ContainerRenderer # Renders layouts
+│   ├── ContainerRenderer # Renders containers (columns/sections)
+│   └── ColumnRenderer   # Renders columns
 ├── context/             # React context
 ├── hooks/               # useDynamicFormContext
 ├── parser/              # Config parsing
 ├── schema/              # Zod schema generation
 ├── resolver/            # Visibility-aware resolver
 ├── validation/          # JSON Logic evaluation
+├── customComponents/    # Custom component utilities
 ├── types/               # TypeScript definitions
 └── utils/               # Utilities
 
@@ -710,13 +822,6 @@ sample/                  # Sample application
 ├── App.tsx              # Demo form
 ├── fields/              # Sample field components
 └── containers/          # Sample containers
-```
-
-### Running the Sample App
-
-```bash
-pnpm dev
-# Open http://localhost:3000
 ```
 
 ## Tech Stack
@@ -746,7 +851,7 @@ Create branches using the format: `type/description`
 
 ### Commit Messages
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated versioning and changelog generation.
+This project uses [Conventional Commits](https://www.conventionalcommits.org/).
 
 **Format:**
 ```text
@@ -760,9 +865,6 @@ type(scope): description
 feat(schema): add support for custom validators
 fix(components): resolve visibility calculation bug
 refactor(parser): simplify configuration parsing logic
-docs(readme): add contributing guidelines
-chore(deps): update react-hook-form to v7.72
-test(utils): add edge case tests for flattenFields
 ```
 
 | Type | Description | Version Bump |
@@ -772,8 +874,6 @@ test(utils): add edge case tests for flattenFields
 | `feat!` or `BREAKING CHANGE` | Breaking change | Major (1.0.0 → 2.0.0) |
 | `docs`, `chore`, `refactor`, `test` | Non-release changes | None |
 
-For detailed release workflow, see [docs/release-workflow.md](docs/release-workflow.md).
-
 ### Pull Request Process
 
 1. Create a branch from `main` using the naming convention above
@@ -781,7 +881,7 @@ For detailed release workflow, see [docs/release-workflow.md](docs/release-workf
 3. Ensure all checks pass: `pnpm test && pnpm typecheck && pnpm lint`
 4. Open a pull request to `main`
 5. Address review feedback
-6. Squash and merge (or rebase) when approved
+6. Squash and merge when approved
 
 ## License
 
