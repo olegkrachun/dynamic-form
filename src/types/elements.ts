@@ -1,32 +1,25 @@
 import type { JsonLogicRule, ValidationConfig } from "./validation";
 
 /**
- * All supported element types in the form configuration.
- * Fields: text, email, boolean, phone, date, select, array, custom
- * Layout: container (columns are data inside containers, not standalone elements)
+ * Element type identifier.
+ *
+ * The engine only distinguishes two kinds:
+ * - `"container"` — layout wrapper, looked up by variant
+ * - anything else — a field, looked up by type string in `components.fields`
+ *
+ * Consumers can use ANY string as a field type (e.g. "textarea", "currency",
+ * "rich-text"). The engine does not maintain a closed set of field types.
+ *
+ * Well-known types (text, email, boolean, phone, date, select, array, custom)
+ * are provided as convenience interfaces but are NOT enforced by the engine.
  */
-export type ElementType =
-  | "text"
-  | "email"
-  | "boolean"
-  | "phone"
-  | "date"
-  | "select"
-  | "array"
-  | "container"
-  | "custom";
+export type ElementType = string;
 
 /**
- * Field types that render input controls.
+ * Field type identifier — any string except "container".
+ * The engine treats every non-container element as a field.
  */
-export type FieldType =
-  | "text"
-  | "email"
-  | "boolean"
-  | "phone"
-  | "date"
-  | "select"
-  | "array";
+export type FieldType = string;
 
 /**
  * Base interface for all field elements.
@@ -69,41 +62,6 @@ export interface BaseFieldElement {
    * Use for gridSpan, fieldClassName, confidence, readOnly, etc.
    */
   meta?: Record<string, unknown>;
-}
-
-/**
- * Text input field element.
- */
-export interface TextFieldElement extends BaseFieldElement {
-  type: "text";
-}
-
-/**
- * Email input field element.
- */
-export interface EmailFieldElement extends BaseFieldElement {
-  type: "email";
-}
-
-/**
- * Boolean (checkbox/toggle) field element.
- */
-export interface BooleanFieldElement extends BaseFieldElement {
-  type: "boolean";
-}
-
-/**
- * Phone number input field element.
- */
-export interface PhoneFieldElement extends BaseFieldElement {
-  type: "phone";
-}
-
-/**
- * Date picker field element.
- */
-export interface DateFieldElement extends BaseFieldElement {
-  type: "date";
 }
 
 /**
@@ -274,17 +232,20 @@ export interface ContainerElement {
 }
 
 /**
- * Union of all field element types.
+ * Structurally-specific field element types.
+ * These have additional required properties beyond BaseFieldElement.
  */
-export type FieldElement =
-  | TextFieldElement
-  | EmailFieldElement
-  | BooleanFieldElement
-  | PhoneFieldElement
-  | DateFieldElement
+export type StructuralFieldElement =
   | SelectFieldElement
   | ArrayFieldElement
   | CustomFieldElement;
+
+/**
+ * A field element — any element whose type is not "container".
+ * The engine accepts ANY type string; structurally-specific types
+ * (select, array, custom) add required properties.
+ */
+export type FieldElement = StructuralFieldElement | BaseFieldElement;
 
 /**
  * Union of all layout element types.
@@ -297,17 +258,10 @@ export type LayoutElement = ContainerElement;
 export type FormElement = FieldElement | LayoutElement;
 
 /**
- * Type guard to check if an element is a field element.
+ * Type guard to check if an element is a field element (any non-container).
  */
 export const isFieldElement = (element: FormElement): element is FieldElement =>
-  element.type === "text" ||
-  element.type === "email" ||
-  element.type === "boolean" ||
-  element.type === "phone" ||
-  element.type === "date" ||
-  element.type === "select" ||
-  element.type === "array" ||
-  element.type === "custom";
+  element.type !== "container";
 
 /**
  * Type guard to check if an element is an array field element.

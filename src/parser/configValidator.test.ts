@@ -200,12 +200,13 @@ describe("configValidator", () => {
       expect(container.children).toHaveLength(2);
     });
 
-    it("should reject an invalid field type", () => {
+    it("should accept any field type string (type-agnostic engine)", () => {
       const config = {
-        elements: [{ type: "invalid", name: "test" }],
+        elements: [{ type: "textarea", name: "test" }],
       };
 
-      expect(() => validateConfiguration(config)).toThrow(ZodError);
+      const result = validateConfiguration(config);
+      expect(result.elements).toHaveLength(1);
     });
 
     it("should reject missing required properties", () => {

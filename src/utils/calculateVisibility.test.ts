@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ContainerElement, FormElement, TextFieldElement } from "../types";
+import type { BaseFieldElement, ContainerElement, FormElement } from "../types";
 import {
   calculateVisibility,
   getUpdatedVisibility,
@@ -20,7 +20,7 @@ describe("calculateVisibility", () => {
     });
 
     it("should mark field as visible when condition evaluates to true", () => {
-      const field: TextFieldElement = {
+      const field: BaseFieldElement = {
         type: "text",
         name: "reason",
         visible: { "==": [{ var: "type" }, "other"] },
@@ -33,7 +33,7 @@ describe("calculateVisibility", () => {
     });
 
     it("should mark field as invisible when condition evaluates to false", () => {
-      const field: TextFieldElement = {
+      const field: BaseFieldElement = {
         type: "text",
         name: "reason",
         visible: { "==": [{ var: "type" }, "other"] },

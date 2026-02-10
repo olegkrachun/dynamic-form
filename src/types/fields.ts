@@ -4,19 +4,13 @@ import type {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import type { CustomComponentRegistry } from "../customComponents";
+import type { CustomComponentRegistry } from "@/customComponents";
 import type {
   ArrayFieldElement,
   BaseFieldElement,
-  BooleanFieldElement,
   ContainerElement,
   CustomFieldElement,
-  DateFieldElement,
-  ElementType,
-  EmailFieldElement,
-  PhoneFieldElement,
   SelectFieldElement,
-  TextFieldElement,
 } from "./elements";
 import type { FormData } from "./events";
 
@@ -26,7 +20,7 @@ import type { FormData } from "./events";
  *
  * @example
  * ```tsx
- * const MyTextField: TextFieldComponent = ({ field, fieldState, config, formValues }) => (
+ * const MyTextField: BaseFieldComponent = ({ field, fieldState, config, formValues }) => (
  *   <div>
  *     <label>{config.label}</label>
  *     <input {...field} />
@@ -56,50 +50,10 @@ export interface BaseFieldProps<
   setValue: (name: string, value: unknown) => void;
 }
 
-/**
- * Props for text input field component.
- */
-export type TextFieldProps = BaseFieldProps<
-  FieldValues,
-  FieldPath<FieldValues>,
-  TextFieldElement
->;
-
-/**
- * Props for email input field component.
- */
-export type EmailFieldProps = BaseFieldProps<
-  FieldValues,
-  FieldPath<FieldValues>,
-  EmailFieldElement
->;
-
-/**
- * Props for boolean (checkbox/toggle) field component.
- */
-export type BooleanFieldProps = BaseFieldProps<
-  FieldValues,
-  FieldPath<FieldValues>,
-  BooleanFieldElement
->;
-
-/**
- * Props for phone input field component.
- */
-export type PhoneFieldProps = BaseFieldProps<
-  FieldValues,
-  FieldPath<FieldValues>,
-  PhoneFieldElement
->;
-
-/**
- * Props for date input field component.
- */
-export type DateFieldProps = BaseFieldProps<
-  FieldValues,
-  FieldPath<FieldValues>,
-  DateFieldElement
->;
+// ============================================================================
+// Structurally-specific field props
+// Only types that add properties beyond BaseFieldElement get their own Props.
+// ============================================================================
 
 /**
  * Props for select field component.
@@ -129,6 +83,10 @@ export type CustomFieldProps = BaseFieldProps<
   CustomFieldElement
 >;
 
+// ============================================================================
+// Component types
+// ============================================================================
+
 /**
  * Base component type that accepts any field configuration.
  * Used internally for dynamic field rendering where the specific
@@ -136,31 +94,6 @@ export type CustomFieldProps = BaseFieldProps<
  */
 export type BaseFieldComponent<TProps extends BaseFieldProps = BaseFieldProps> =
   React.ComponentType<TProps>;
-
-/**
- * Component type for text fields.
- */
-export type TextFieldComponent = BaseFieldComponent<TextFieldProps>;
-
-/**
- * Component type for email fields.
- */
-export type EmailFieldComponent = BaseFieldComponent<EmailFieldProps>;
-
-/**
- * Component type for boolean fields.
- */
-export type BooleanFieldComponent = BaseFieldComponent<BooleanFieldProps>;
-
-/**
- * Component type for phone fields.
- */
-export type PhoneFieldComponent = BaseFieldComponent<PhoneFieldProps>;
-
-/**
- * Component type for date fields.
- */
-export type DateFieldComponent = BaseFieldComponent<DateFieldProps>;
 
 /**
  * Component type for select fields.
@@ -177,43 +110,38 @@ export type ArrayFieldComponent = BaseFieldComponent<ArrayFieldProps>;
  */
 export type CustomFieldComponent = BaseFieldComponent<CustomFieldProps>;
 
-export type StandardFieldComponent =
-  | TextFieldComponent
-  | EmailFieldComponent
-  | BooleanFieldComponent
-  | PhoneFieldComponent
-  | DateFieldComponent
-  | SelectFieldComponent
-  | ArrayFieldComponent;
-
-export type StandardFieldComponentType = Exclude<ElementType, "custom">;
-
-export interface FieldComponentRegistry
-  extends Partial<Record<StandardFieldComponentType, StandardFieldComponent>> {
-  text: TextFieldComponent;
-  email: EmailFieldComponent;
-  boolean: BooleanFieldComponent;
-  phone: PhoneFieldComponent;
-  date: DateFieldComponent;
-  select: SelectFieldComponent;
-  array: ArrayFieldComponent;
-}
+/**
+ * Open-ended field component registry.
+ *
+ * Consumers provide components for every field type they use.
+ * The engine does NOT enforce a fixed set — any string key is valid.
+ *
+ * @example
+ * ```tsx
+ * const fields: FieldComponentRegistry = {
+ *   text: MyTextField,
+ *   email: MyEmailField,
+ *   boolean: MyCheckbox,
+ *   phone: MyPhoneField,
+ *   date: MyDatePicker,
+ *   select: MyDropdown,
+ *   array: MyRepeater,
+ *   // Consumer-defined types — engine renders them the same way:
+ *   textarea: MyTextarea,
+ *   currency: MyCurrencyField,
+ * };
+ * ```
+ */
+export type FieldComponentRegistry = Record<string, BaseFieldComponent>;
 
 // Note: CustomComponentRegistry is exported from customComponents module
 // for full definition support with propsSchema validation
 
 /**
- * Union type for all field props.
+ * Field props type.
+ * Uses BaseFieldProps so the engine stays type-agnostic.
  */
-export type FieldProps =
-  | TextFieldProps
-  | EmailFieldProps
-  | BooleanFieldProps
-  | PhoneFieldProps
-  | DateFieldProps
-  | SelectFieldProps
-  | ArrayFieldProps
-  | CustomFieldProps;
+export type FieldProps = BaseFieldProps;
 
 // ============================================================================
 // Container Component Types (Phase 2)
@@ -297,5 +225,3 @@ export interface ComponentRegistry {
   /** Optional: container components looked up by variant name */
   containers?: CustomContainerRegistry;
 }
-
-// ============================================================================

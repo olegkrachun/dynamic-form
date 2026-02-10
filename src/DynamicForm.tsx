@@ -114,6 +114,12 @@ export const DynamicForm = ({
 
   const previousValuesRef = useRef<Record<string, unknown>>({});
 
+  /**
+   * Set of field names currently being reset by the dependency system.
+   * Watch events for these fields are suppressed to avoid duplicate onChange calls.
+   */
+  const resettingFieldsRef = useRef<Set<string>>(new Set());
+
   // Single watch subscription: visibility + dependency resets + onChange
   useEffect(() => {
     const handleDependencyReset = (
@@ -140,6 +146,7 @@ export const DynamicForm = ({
       for (const dep of dependents) {
         const field = findFieldByName(parsedConfig.elements, dep);
         if (field && field.resetOnParentChange !== false) {
+          resettingFieldsRef.current.add(dep);
           form.setValue(dep, getFieldDefault(field));
         }
       }
@@ -155,6 +162,12 @@ export const DynamicForm = ({
       setVisibility((prev) => getUpdatedVisibility(prev, newVisibility));
 
       if (!name) {
+        return;
+      }
+
+      // Skip onChange for programmatic dependency resets to avoid duplicates
+      if (resettingFieldsRef.current.has(name)) {
+        resettingFieldsRef.current.delete(name);
         return;
       }
 

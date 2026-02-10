@@ -1,5 +1,4 @@
 import { useController } from "react-hook-form";
-import type { StandardFieldComponentType } from "@/types/fields";
 import {
   type CustomComponentRenderProps,
   normalizeComponentDefinition,
@@ -78,9 +77,7 @@ const StandardFieldRenderer = ({
   setValue,
 }: InternalFieldRendererProps) => {
   const { components } = useDynamicFormContext();
-  const FieldComponent = components.fields[
-    config.type as StandardFieldComponentType
-  ] as BaseFieldComponent;
+  const FieldComponent = components.fields[config.type] as BaseFieldComponent;
 
   if (!FieldComponent) {
     console.warn(

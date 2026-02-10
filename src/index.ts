@@ -37,39 +37,33 @@ export {
   createVisibilityAwareResolver,
   type VisibilityAwareResolverOptions,
 } from "./resolver";
-export type { GeneratedSchema, InferSchemaType } from "./schema";
+export type {
+  GeneratedSchema,
+  InferSchemaType,
+  SchemaFactory,
+  SchemaMap,
+} from "./schema";
 // =============================================================================
 // Schema Generation (for advanced use cases)
 // =============================================================================
 export {
   buildFieldSchema,
+  defaultSchemaMap,
   generateZodSchema,
   getSchemaFieldPaths,
+  setSchemaMap,
 } from "./schema";
 // =============================================================================
-// Types - Configuration
-// =============================================================================
-// =============================================================================
-// Types - Elements
-// =============================================================================
-// =============================================================================
-// Types - Field Components (for implementing field components)
-// =============================================================================
-// =============================================================================
-// Types - Validation
-// =============================================================================
-// =============================================================================
-// Types - Events
+// Types
 // =============================================================================
 export type {
   ApiOptionsSource,
   ArrayFieldComponent,
   ArrayFieldElement,
   ArrayFieldProps,
+  BaseFieldComponent,
+  BaseFieldElement,
   BaseFieldProps,
-  BooleanFieldComponent,
-  BooleanFieldElement,
-  BooleanFieldProps,
   ComponentRegistry,
   ContainerComponent,
   ContainerElement,
@@ -80,15 +74,9 @@ export type {
   CustomFieldComponent,
   CustomFieldElement,
   CustomFieldProps,
-  DateFieldComponent,
-  DateFieldElement,
-  DateFieldProps,
   DynamicFormProps,
   DynamicFormRef,
   ElementType,
-  EmailFieldComponent,
-  EmailFieldElement,
-  EmailFieldProps,
   FieldComponentRegistry,
   FieldElement,
   FieldProps,
@@ -108,9 +96,6 @@ export type {
   OnSubmitHandler,
   OnValidationChangeHandler,
   OptionsSource,
-  PhoneFieldComponent,
-  PhoneFieldElement,
-  PhoneFieldProps,
   ResolverOptionsSource,
   SearchOptionsSource,
   SelectFieldComponent,
@@ -118,9 +103,6 @@ export type {
   SelectFieldProps,
   SelectOption,
   StaticOptionsSource,
-  TextFieldComponent,
-  TextFieldElement,
-  TextFieldProps,
   ValidationConfig,
 } from "./types";
 // Element type guards

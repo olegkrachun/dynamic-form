@@ -30,13 +30,12 @@ This library enables rapid deployment of data collection forms by defining form 
 ```
 src/
 ├── components/          # React components
-│   ├── FormRenderer.tsx # Renders form elements
-│   ├── ElementRenderer.tsx # Routes to field/container renderers
-│   ├── FieldRenderer.tsx   # Renders individual fields
-│   ├── ContainerRenderer.tsx # Renders layout containers
-│   └── ColumnRenderer.tsx  # Renders columns
+│   ├── FormRenderer.tsx      # Renders form elements
+│   ├── ElementRenderer.tsx   # Routes to field/container renderers
+│   ├── FieldRenderer.tsx     # Renders individual fields
+│   └── ContainerRenderer.tsx # Renders variant-based containers
 ├── context/             # React context for form state
-├── customComponents/    # Custom component system (Phase 5)
+├── customComponents/    # Custom component system
 │   ├── types.ts         # CustomComponentDefinition, CustomComponentRenderProps
 │   ├── defineCustomComponent.ts # Type-safe component definition helper
 │   ├── validateCustomElement.ts # Single element validation
@@ -49,7 +48,7 @@ src/
 ├── test-utils/          # Test utilities
 │   └── mockFieldComponents.tsx # Mock field components for testing
 ├── types/               # TypeScript type definitions
-│   ├── elements.ts      # Field and layout element types
+│   ├── elements.ts      # Field and container element types
 │   ├── fields.ts        # Field component props and registries
 │   ├── config.ts        # Form configuration types
 │   ├── events.ts        # Event handler types
@@ -60,8 +59,10 @@ src/
 └── index.ts             # Public exports
 
 sample/                  # Sample application
-├── App.tsx              # Demo form with all field types
+├── App.tsx              # Demo form wiring
+├── sampleFormConfig.ts  # Comprehensive form configuration example
 ├── fields/              # Sample field implementations
+├── containers/          # Sample container implementations (row, column, section)
 └── styles.css           # Demo styling
 ```
 
@@ -83,16 +84,18 @@ pnpm lint:fix     # Auto-fix lint errors
 - `FieldElement` - Union of all field types (text, email, boolean, phone, date, select, array, custom)
 - `SelectFieldElement` - Dropdown/multi-select with options
 - `ArrayFieldElement` - Repeatable field groups with itemFields template
-- `ContainerElement` - Layout container with columns
-- `ColumnElement` - Column with width and nested elements
+- `ContainerElement` - Variant-based layout container with children and meta
+- `ComponentRegistry` - Unified registry: `{ fields, custom?, containers? }`
 - `FieldComponentRegistry` - Maps field types to components
 - `CustomComponentRegistry` - Maps custom component names to implementations
+- `CustomContainerRegistry` - Maps container variant strings to components
+- `ContainerComponent` - Component type for container renderers
 - `ZodSchema` - Type alias for external Zod schema prop
 
 ## Implementation Phases
 
 - **Phase 1** ✅ - Core form rendering, field types, validation, nested paths
-- **Phase 2** ✅ - Container/column layout system, custom containers
+- **Phase 2** ✅ - Variant-based container layout system
 - **Phase 3** ✅ - Declarative validation with JSON Logic, visibility-aware resolver
 - **Phase 4** ✅ - Visibility control system (conditional field display)
 - **Phase 5** ✅ - Advanced features (select, arrays, field dependencies, flexible validation)
@@ -111,7 +114,6 @@ Tests are colocated with implementation files (256 tests across 22 files):
 
 **Components:**
 - `src/components/ContainerRenderer.test.tsx` - Container rendering
-- `src/components/ColumnRenderer.test.tsx` - Column rendering
 - `src/components/ElementRenderer.test.tsx` - Element routing
 - `src/components/FieldRenderer.test.tsx` - Field rendering
 - `src/components/FormRenderer.test.tsx` - Form rendering

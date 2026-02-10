@@ -12,7 +12,7 @@ const jsonLogicRuleSchema = z.record(z.string(), z.unknown());
 const validationConfigSchema = z
   .object({
     required: z.boolean().optional(),
-    type: z.enum(["number", "email", "date"]).optional(),
+    type: z.string().optional(),
     minLength: z.number().int().min(0).optional(),
     maxLength: z.number().int().min(0).optional(),
     pattern: z.string().optional(),
@@ -30,10 +30,15 @@ const metaSchema = z.record(z.string(), z.unknown()).optional();
 
 /**
  * Base field element schema (common properties).
- * Consumer metadata goes in `meta` — no catchall needed.
+ *
+ * The engine accepts ANY `type` string (except "container") as a field.
+ * Well-known types get structural refinement (select needs options,
+ * array needs itemFields, custom needs component), but unknown types
+ * pass through with just `type` + `name`.
  */
 const baseFieldSchema = z
   .object({
+    type: z.string().min(1, "Field type is required"),
     name: z.string().min(1, "Field name is required"),
     label: z.string().optional(),
     placeholder: z.string().optional(),
@@ -54,41 +59,6 @@ const baseFieldSchema = z
     meta: metaSchema,
   })
   .catchall(z.unknown());
-
-/**
- * Text field element schema.
- */
-const textFieldSchema = baseFieldSchema.extend({
-  type: z.literal("text"),
-});
-
-/**
- * Email field element schema.
- */
-const emailFieldSchema = baseFieldSchema.extend({
-  type: z.literal("email"),
-});
-
-/**
- * Boolean field element schema.
- */
-const booleanFieldSchema = baseFieldSchema.extend({
-  type: z.literal("boolean"),
-});
-
-/**
- * Phone field element schema.
- */
-const phoneFieldSchema = baseFieldSchema.extend({
-  type: z.literal("phone"),
-});
-
-/**
- * Date field element schema.
- */
-const dateFieldSchema = baseFieldSchema.extend({
-  type: z.literal("date"),
-});
 
 /**
  * Select option schema.
@@ -130,7 +100,6 @@ const selectFieldSchema = baseFieldSchema
   })
   .refine(
     (data) => {
-      // Options are required when no optionsSource is provided or when using static source
       if (!data.optionsSource || data.optionsSource.type === "static") {
         return data.options !== undefined && data.options.length >= 0;
       }
@@ -141,6 +110,7 @@ const selectFieldSchema = baseFieldSchema
 
 /**
  * Custom field element schema.
+ * Requires a `component` name for registry lookup.
  */
 const customFieldSchema = baseFieldSchema.extend({
   type: z.literal("custom"),
@@ -150,8 +120,7 @@ const customFieldSchema = baseFieldSchema.extend({
 
 /**
  * Forward declaration for formElementSchema (used in recursive schemas).
- * Only fields and containers are top-level elements.
- * Columns are data inside containers — not standalone elements.
+ * The engine knows only two element kinds: field and container.
  */
 const formElementSchema: z.ZodType<unknown> = z.lazy(() =>
   z.union([fieldElementSchema, containerElementSchema])
@@ -181,17 +150,44 @@ const arrayFieldSchema = baseFieldSchema
   );
 
 /**
- * Field element schema - union of all field types.
+ * Types with structural requirements that MUST be validated
+ * by their specific schemas (select, custom, array).
+ * The generic schema rejects these so they don't sneak through
+ * with missing required properties.
  */
-const fieldElementSchema: z.ZodType<unknown> = z.discriminatedUnion("type", [
-  textFieldSchema,
-  emailFieldSchema,
-  booleanFieldSchema,
-  phoneFieldSchema,
-  dateFieldSchema,
+const STRUCTURALLY_SPECIFIC_TYPES = new Set([
+  "container",
+  "select",
+  "custom",
+  "array",
+]);
+
+/**
+ * Generic field element schema.
+ *
+ * Accepts any field with `type` + `name` EXCEPT:
+ * - "container" (must be validated by containerElementSchema)
+ * - "select" (must be validated by selectFieldSchema — needs options)
+ * - "custom" (must be validated by customFieldSchema — needs component)
+ * - "array" (must be validated by arrayFieldSchema — needs itemFields)
+ */
+const genericFieldSchema = baseFieldSchema.refine(
+  (data) => !STRUCTURALLY_SPECIFIC_TYPES.has(data.type),
+  { message: "This type requires specific structural properties" }
+);
+
+/**
+ * Field element schema — union of structurally-specific types + open-ended generic.
+ *
+ * Order matters: specific schemas (select, custom, array) are tried first
+ * so their structural requirements (options, component, itemFields) are enforced.
+ * The generic schema catches everything else — any `type` string is valid.
+ */
+const fieldElementSchema: z.ZodType<unknown> = z.union([
   selectFieldSchema,
   customFieldSchema,
   arrayFieldSchema,
+  genericFieldSchema,
 ]);
 
 /**

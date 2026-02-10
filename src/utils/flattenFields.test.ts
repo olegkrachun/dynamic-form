@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type {
+  BaseFieldElement,
   ContainerElement,
   FieldElement,
   FormElement,
-  TextFieldElement,
 } from "../types";
 import { flattenFields, getFieldNames } from "./flattenFields";
 
 describe("flattenFields", () => {
   it("should return a single field unchanged", () => {
-    const field: TextFieldElement = {
+    const field: BaseFieldElement = {
       type: "text",
       name: "firstName",
     };

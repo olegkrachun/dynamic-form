@@ -139,27 +139,33 @@ const deepMerge = (
 };
 
 /**
- * Gets the default value for a field based on its type.
+ * Gets the default value for a field based on structural detection.
+ *
+ * Uses field shape (presence of `multiple`, `itemFields`, etc.)
+ * instead of type strings so unknown/consumer-defined types still
+ * get a sensible default.
  *
  * @param field - Field element
  * @returns Appropriate default value for the field type
  */
 const getTypeDefault = (field: FieldElement): unknown => {
-  switch (field.type) {
-    case "boolean":
-      return false;
-    case "select":
-      return field.multiple ? [] : null;
-    case "array":
-      return [];
-    case "text":
-    case "email":
-    case "phone":
-    case "date":
-      return "";
-    default:
-      return "";
+  // Array fields — detected by `itemFields`
+  if ("itemFields" in field) {
+    return [];
   }
+
+  // Select fields — detected by `options` or `multiple`
+  if ("options" in field || "multiple" in field) {
+    return "multiple" in field && field.multiple ? [] : null;
+  }
+
+  // Boolean fields
+  if (field.type === "boolean") {
+    return false;
+  }
+
+  // Everything else (text, email, phone, date, consumer-defined, etc.)
+  return "";
 };
 
 /**

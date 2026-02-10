@@ -7,6 +7,41 @@ import type {
 } from "../types";
 
 /**
+ * Schema factory function type.
+ * Maps a field type string to a base Zod schema.
+ */
+export type SchemaFactory = (field: FieldElement) => ZodTypeAny;
+
+/**
+ * Registry mapping field type strings to schema factories.
+ * Consumers can provide their own to extend or override defaults.
+ */
+export type SchemaMap = Record<string, SchemaFactory>;
+
+/**
+ * Default schema factories for well-known field types.
+ * Consumers import this and can extend/override entries.
+ *
+ * @example
+ * ```typescript
+ * import { defaultSchemaMap } from './fieldSchemas';
+ *
+ * const mySchemaMap = {
+ *   ...defaultSchemaMap,
+ *   currency: () => z.number().min(0),
+ *   textarea: () => z.string(),
+ * };
+ * ```
+ */
+export const defaultSchemaMap: SchemaMap = {
+  text: () => z.string(),
+  phone: () => z.string(),
+  email: () => z.string().email("Invalid email address"),
+  boolean: () => z.boolean(),
+  date: () => z.string(),
+};
+
+/**
  * Build the base Zod schema for a select field.
  *
  * @param field - Select field configuration
@@ -64,41 +99,60 @@ const buildArraySchema = (field: ArrayFieldElement): ZodTypeAny => {
 };
 
 /**
- * Build the base Zod schema for a field based on its type.
+ * The active schema map used by buildBaseSchema.
+ * Initialized with defaultSchemaMap; can be replaced via setSchemaMap.
+ */
+let activeSchemaMap: SchemaMap = { ...defaultSchemaMap };
+
+/**
+ * Replace the active schema map.
+ * Call this once at app startup to provide custom type → schema mappings.
+ *
+ * @param schemaMap - Custom schema map (merged with structural defaults)
+ *
+ * @example
+ * ```typescript
+ * import { setSchemaMap, defaultSchemaMap } from './fieldSchemas';
+ *
+ * setSchemaMap({
+ *   ...defaultSchemaMap,
+ *   currency: () => z.number().min(0),
+ *   textarea: () => z.string(),
+ * });
+ * ```
+ */
+export const setSchemaMap = (schemaMap: SchemaMap): void => {
+  activeSchemaMap = { ...schemaMap };
+};
+
+/**
+ * Build the base Zod schema for a field.
+ *
+ * Detection order:
+ * 1. Structural — `itemFields` → array schema, `options`/`multiple` → select schema
+ * 2. Schema map — look up `field.type` in the active schema map
+ * 3. Fallback — `z.unknown()`
  *
  * @param field - The field element configuration
  * @returns Base Zod schema for the field type
  */
 const buildBaseSchema = (field: FieldElement): ZodTypeAny => {
-  switch (field.type) {
-    case "text":
-    case "phone":
-      return z.string();
-
-    case "email":
-      // Email type gets built-in email validation
-      return z.string().email("Invalid email address");
-
-    case "boolean":
-      return z.boolean();
-
-    case "date":
-      // Date is stored as ISO string
-      return z.string();
-
-    case "select":
-      return buildSelectSchema(field);
-
-    case "array":
-      return buildArraySchema(field);
-
-    case "custom":
-      // Custom fields accept any value
-      return z.unknown();
-
-    default:
-      return z.unknown();
+  // 1. Structural detection — select and array have required structural properties
+  if ("itemFields" in field) {
+    return buildArraySchema(field as ArrayFieldElement);
   }
+  if ("options" in field || "multiple" in field) {
+    return buildSelectSchema(field as SelectFieldElement);
+  }
+
+  // 2. Schema map lookup — configurable by consumers
+  const factory = activeSchemaMap[field.type];
+  if (factory) {
+    return factory(field);
+  }
+
+  // 3. Fallback — consumer-defined types without a schema factory
+  return z.unknown();
 };
 
 /**
@@ -141,7 +195,7 @@ const applyStringValidation = (
       const regex = new RegExp(validation.pattern);
       result = result.regex(regex, validation.message || "Invalid format");
     } catch {
-      console.warn(`Invalid regex pattern: ${validation.pattern}`);
+      // Invalid regex — skip silently
     }
   }
 
@@ -202,7 +256,10 @@ const applySelectValidation = (
 };
 
 /**
- * Apply validation configuration to a Zod schema based on field type.
+ * Apply validation configuration to a Zod schema based on schema shape.
+ *
+ * Uses schema introspection (not field type strings) to determine
+ * which validation rules to apply. This keeps the engine type-agnostic.
  *
  * @param schema - Base Zod schema
  * @param validation - Validation configuration
@@ -214,29 +271,26 @@ const applyValidationRules = (
   validation: ValidationConfig,
   field: FieldElement
 ): ZodTypeAny => {
-  const fieldType = field.type;
-
-  // String-based fields (text, phone, email, date)
-  if (
-    fieldType === "text" ||
-    fieldType === "phone" ||
-    fieldType === "email" ||
-    fieldType === "date"
-  ) {
-    return applyStringValidation(schema as z.ZodString, validation);
+  // String-based schemas
+  if (schema instanceof z.ZodString) {
+    return applyStringValidation(schema, validation);
   }
 
-  // Boolean fields
-  if (fieldType === "boolean") {
-    return applyBooleanValidation(schema as z.ZodBoolean, validation);
+  // Boolean schemas
+  if (schema instanceof z.ZodBoolean) {
+    return applyBooleanValidation(schema, validation);
   }
 
-  // Select fields
-  if (fieldType === "select") {
-    return applySelectValidation(schema, validation, field.multiple ?? false);
+  // Select fields — detected structurally by the presence of `options` or `multiple`
+  if ("options" in field || "multiple" in field) {
+    return applySelectValidation(
+      schema,
+      validation,
+      ("multiple" in field && (field as SelectFieldElement).multiple) ?? false
+    );
   }
 
-  // Custom and unknown types - no standard validation
+  // Unknown/consumer-defined types — no standard validation applied
   return schema;
 };
 
