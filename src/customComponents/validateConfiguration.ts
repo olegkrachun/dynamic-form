@@ -66,14 +66,25 @@ function validateContainer(
   registry: CustomComponentRegistry,
   path: string
 ): ContainerElement {
-  const validatedColumns = container.columns.map((column, index) =>
-    validateColumn(column, registry, `${path}.columns[${index}]`)
-  );
+  const result = { ...container };
 
-  return {
-    ...container,
-    columns: validatedColumns,
-  };
+  // Validate columns (default container)
+  if (container.columns) {
+    result.columns = container.columns.map((column, index) =>
+      validateColumn(column, registry, `${path}.columns[${index}]`)
+    );
+  }
+
+  // Validate children (section container)
+  if (container.children) {
+    result.children = validateElements(
+      container.children,
+      registry,
+      `${path}.children`
+    );
+  }
+
+  return result;
 }
 
 function validateColumn(
@@ -112,29 +123,56 @@ export function getValidatedCustomElements(
   config: FormConfiguration
 ): ValidatedCustomElement[] {
   const results: ValidatedCustomElement[] = [];
+  collectFromElements(config.elements, results);
+  return results;
+}
 
-  function collectFromElements(elements: FormElement[]): void {
-    for (const element of elements) {
-      if (isCustomElement(element)) {
-        const componentProps =
-          typeof element.componentProps === "object" &&
-          element.componentProps !== null
-            ? element.componentProps
-            : {};
-        results.push({
-          ...element,
-          componentProps: componentProps as Record<string, unknown>,
-        });
-      } else if (isContainerElement(element)) {
-        for (const column of element.columns) {
-          collectFromElements(column.elements);
-        }
-      } else if (isColumnElement(element)) {
-        collectFromElements(element.elements);
-      }
-    }
+function collectFromElements(
+  elements: FormElement[],
+  results: ValidatedCustomElement[]
+): void {
+  for (const element of elements) {
+    collectFromElement(element, results);
+  }
+}
+
+function collectFromElement(
+  element: FormElement,
+  results: ValidatedCustomElement[]
+): void {
+  if (isCustomElement(element)) {
+    const componentProps =
+      typeof element.componentProps === "object" &&
+      element.componentProps !== null
+        ? element.componentProps
+        : {};
+    results.push({
+      ...element,
+      componentProps: componentProps as Record<string, unknown>,
+    });
+    return;
   }
 
-  collectFromElements(config.elements);
-  return results;
+  if (isContainerElement(element)) {
+    collectFromContainer(element, results);
+    return;
+  }
+
+  if (isColumnElement(element)) {
+    collectFromElements(element.elements, results);
+  }
+}
+
+function collectFromContainer(
+  container: ContainerElement,
+  results: ValidatedCustomElement[]
+): void {
+  if (container.columns) {
+    for (const column of container.columns) {
+      collectFromElements(column.elements, results);
+    }
+  }
+  if (container.children) {
+    collectFromElements(container.children, results);
+  }
 }

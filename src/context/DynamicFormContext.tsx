@@ -7,7 +7,6 @@ import type {
   FieldWrapperFunction,
   FormConfiguration,
   FormData,
-  SectionComponent,
 } from "../types";
 
 /**
@@ -41,6 +40,8 @@ export interface DynamicFormContextValue {
   /**
    * Registered custom container components (Phase 2).
    * These can be used to customize container layout rendering.
+   * Use variant property on containers to select which custom container to use.
+   * Example: { default: GridContainer, section: SectionContainer }
    */
   customContainers: CustomContainerRegistry;
 
@@ -56,12 +57,6 @@ export interface DynamicFormContextValue {
    * When provided, every field is wrapped with this function.
    */
   fieldWrapper?: FieldWrapperFunction;
-
-  /**
-   * Optional section component for rendering section elements.
-   * When provided, section elements use this component for layout.
-   */
-  sectionComponent?: SectionComponent;
 }
 
 /**

@@ -143,15 +143,10 @@ const customFieldSchema = baseFieldSchema.extend({
 
 /**
  * Forward declaration for formElementSchema (used in recursive schemas).
- * This allows columnElementSchema and sectionElementSchema to reference it.
+ * This allows columnElementSchema and containerElementSchema to reference it.
  */
 const formElementSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.union([
-    fieldElementSchema,
-    columnElementSchema,
-    containerElementSchema,
-    sectionElementSchema,
-  ])
+  z.union([fieldElementSchema, columnElementSchema, containerElementSchema])
 );
 
 /**
@@ -203,28 +198,21 @@ const columnElementSchema = z.object({
 
 /**
  * Container element schema (for Phase 2).
- * Uses catchall() to preserve custom properties like containerMeta.
+ * Supports both column-based layout and section variant with children.
+ * Uses catchall() to preserve custom properties.
  */
 const containerElementSchema = z
   .object({
     type: z.literal("container"),
-    columns: z.array(columnElementSchema),
+    variant: z.string().optional(),
+    id: z.string().optional(),
+    title: z.string().optional(),
+    icon: z.string().optional(),
+    columns: z.array(columnElementSchema).optional(),
+    children: z.array(z.lazy(() => formElementSchema)).optional(),
     visible: jsonLogicRuleSchema.optional(),
   })
   .catchall(z.unknown());
-
-/**
- * Section element schema (for Phase 4).
- * Wraps child elements with a section header.
- */
-const sectionElementSchema = z.object({
-  type: z.literal("section"),
-  id: z.string().min(1, "Section id is required"),
-  title: z.string().min(1, "Section title is required"),
-  icon: z.string().optional(),
-  children: z.array(z.lazy(() => formElementSchema)),
-  visible: jsonLogicRuleSchema.optional(),
-});
 
 /**
  * Custom component definition schema.

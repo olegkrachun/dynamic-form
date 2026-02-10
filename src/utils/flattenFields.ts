@@ -47,8 +47,17 @@ export const flattenFields = (elements: FormElement[]): FieldElement[] => {
   };
 
   const processContainer = (container: ContainerElement): void => {
-    for (const column of container.columns) {
-      processColumn(column);
+    // Process columns (default container)
+    if (container.columns) {
+      for (const column of container.columns) {
+        processColumn(column);
+      }
+    }
+    // Process children (section container)
+    if (container.children) {
+      for (const child of container.children) {
+        processElement(child);
+      }
     }
   };
 

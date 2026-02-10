@@ -99,9 +99,18 @@ export const calculateVisibility = (
       containerVisible = evaluateCondition(container.visible, formData);
     }
 
-    // Process columns within container
-    for (const column of container.columns) {
-      processColumn(column, containerVisible);
+    // Process columns within container (default variant)
+    if (container.columns) {
+      for (const column of container.columns) {
+        processColumn(column, containerVisible);
+      }
+    }
+
+    // Process children within container (section variant)
+    if (container.children) {
+      for (const child of container.children) {
+        processElement(child, containerVisible);
+      }
     }
   };
 

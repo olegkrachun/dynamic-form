@@ -48,7 +48,6 @@ export const DynamicForm = ({
   id,
   children,
   fieldWrapper,
-  sectionComponent,
   ref,
 }: DynamicFormPropsWithRef): React.ReactElement => {
   // Parse and validate configuration, including custom component props
@@ -184,7 +183,6 @@ export const DynamicForm = ({
       customContainers,
       visibility,
       fieldWrapper,
-      sectionComponent,
     }),
     [
       form,
@@ -194,7 +192,6 @@ export const DynamicForm = ({
       customContainers,
       visibility,
       fieldWrapper,
-      sectionComponent,
     ]
   );
 

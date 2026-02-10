@@ -49,8 +49,8 @@ export const ColumnRenderer: React.FC<ColumnRendererProps> = ({ config }) => {
     <div style={columnStyle}>
       {config.elements.map((element, index) => (
         <ElementRenderer
-          element={element}
-          key={"name" in element ? element.name : `element-${index}`}
+          config={element}
+          key={"name" in element ? String(element.name) : `element-${index}`}
         />
       ))}
     </div>
