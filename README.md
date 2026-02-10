@@ -182,23 +182,28 @@ interface FormConfiguration {
 
 ### Field Types
 
-| Type | Description | Default Value Type |
-|------|-------------|-------------------|
-| `text` | Single-line text input | `string` |
-| `email` | Email input with validation | `string` |
-| `boolean` | Checkbox or toggle | `boolean` |
-| `phone` | Telephone number input | `string` |
-| `date` | Date picker | `string` |
-| `select` | Dropdown/multi-select with options | `string \| string[]` |
-| `array` | Repeatable field groups | `array` |
-| `custom` | User-defined component | `unknown` |
+The engine is **type-agnostic** — any string is a valid field type. Consumers register components for each type they use via `ComponentRegistry.fields`. The table below lists common conventions:
+
+| Type | Description | Default Schema |
+|------|-------------|----------------|
+| `text` | Single-line text input | `z.string()` |
+| `email` | Email input with validation | `z.string().email()` |
+| `boolean` | Checkbox or toggle | `z.boolean()` |
+| `phone` | Telephone number input | `z.string()` |
+| `date` | Date picker | `z.string()` |
+| `select` | Dropdown/multi-select with options | Structural (auto-detected) |
+| `array` | Repeatable field groups | Structural (auto-detected) |
+| `custom` | User-defined component | `z.unknown()` |
 | `container` | Layout container (variant-based) | N/A (layout element) |
+| *any string* | Consumer-defined type | `z.unknown()` (configurable via `setSchemaMap`) |
 
 ### Field Element Structure
 
+The engine is **type-agnostic** — `type` is an open string, not a closed enum. Consumers can use any string (e.g. `"textarea"`, `"currency"`, `"rich-text"`). The engine only distinguishes `"container"` from everything else.
+
 ```typescript
 interface BaseFieldElement {
-  type: "text" | "email" | "boolean" | "phone" | "date" | "select" | "array" | "custom";
+  type: string;                    // Any string — consumer-defined field type
   name: string;                    // Field path (supports dot notation)
   label?: string;                  // Display label
   placeholder?: string;            // Placeholder text
@@ -509,18 +514,21 @@ export { parseConfiguration, safeParseConfiguration, ConfigurationError };
 // Types
 export type {
   FormConfiguration, FormElement, FieldElement, ContainerElement, LayoutElement,
+  BaseFieldElement, BaseFieldProps, BaseFieldComponent,
   ValidationConfig, FormData, DynamicFormProps, DynamicFormRef,
   ComponentRegistry, FieldComponentRegistry, CustomComponentRegistry, CustomContainerRegistry,
   ContainerComponent, ContainerProps,
-  TextFieldComponent, EmailFieldComponent, BooleanFieldComponent,
-  PhoneFieldComponent, DateFieldComponent, SelectFieldComponent,
-  ArrayFieldComponent, CustomFieldComponent,
-  SelectFieldElement, ArrayFieldElement, SelectOption,
+  SelectFieldComponent, ArrayFieldComponent, CustomFieldComponent,
+  SelectFieldElement, ArrayFieldElement, CustomFieldElement, SelectOption,
+  SchemaFactory, SchemaMap,
 };
+
+// Schema (configurable type → schema mapping)
+export { buildFieldSchema, generateZodSchema, defaultSchemaMap, setSchemaMap };
 
 // Utilities
 export {
-  generateZodSchema, createVisibilityAwareResolver, calculateVisibility,
+  createVisibilityAwareResolver, calculateVisibility,
   flattenFields, getFieldNames, mergeDefaults, getNestedValue, setNestedValue,
   applyJsonLogic, evaluateCondition,
   isFieldElement, isContainerElement, isCustomFieldElement, isArrayFieldElement, isSectionContainer,
@@ -529,16 +537,35 @@ export {
 
 ## Creating Field Components
 
-```tsx
-import type { TextFieldComponent } from 'rhf-dynamic-forms';
+All field components use `BaseFieldComponent` — the engine is type-agnostic:
 
-const TextField: TextFieldComponent = ({ field, fieldState, config }) => (
+```tsx
+import type { BaseFieldComponent } from 'rhf-dynamic-forms';
+
+const TextField: BaseFieldComponent = ({ field, fieldState, config }) => (
   <div className="field">
     {config.label && <label htmlFor={field.name}>{config.label}</label>}
     <input id={field.name} type="text" placeholder={config.placeholder} {...field} />
     {fieldState.error && <span role="alert">{fieldState.error.message}</span>}
   </div>
 );
+```
+
+For structurally-specific fields (select, array), cast `config` to access extra properties:
+
+```tsx
+import type { BaseFieldComponent, SelectFieldElement } from 'rhf-dynamic-forms';
+
+const SelectField: BaseFieldComponent = ({ field, fieldState, config: baseConfig }) => {
+  const config = baseConfig as SelectFieldElement;
+  return (
+    <select {...field}>
+      {config.options?.map(opt => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  );
+};
 ```
 
 ## Creating Container Components

@@ -51,19 +51,20 @@ The Dynamic Form Library is a configuration-driven form generation system for Re
 
 ### 1.4 Supported Field Types
 
-As defined in the configuration schema:
+The engine is **type-agnostic** — `type` is an open string, not a closed enum. Consumers can register components for any type string. The table below lists common conventions:
 
-| Type | Description |
-|------|-------------|
-| `text` | Single-line text input |
-| `email` | Email input with built-in validation |
-| `boolean` | Checkbox/toggle for boolean values |
-| `phone` | Phone number input |
-| `date` | Date picker input |
-| `select` | Dropdown/multi-select with options |
-| `array` | Repeatable field groups |
-| `container` | Layout container with variant-based rendering and nested children |
-| `custom` | User-defined custom component |
+| Type | Description | Schema Default |
+|------|-------------|----------------|
+| `text` | Single-line text input | `z.string()` |
+| `email` | Email input with built-in validation | `z.string().email()` |
+| `boolean` | Checkbox/toggle for boolean values | `z.boolean()` |
+| `phone` | Phone number input | `z.string()` |
+| `date` | Date picker input | `z.string()` |
+| `select` | Dropdown/multi-select with options | Structural (auto-detected) |
+| `array` | Repeatable field groups | Structural (auto-detected) |
+| `container` | Layout container with variant-based rendering | N/A (layout element) |
+| `custom` | User-defined custom component | `z.unknown()` |
+| *any string* | Consumer-defined type | `z.unknown()` (configurable via `setSchemaMap`) |
 
 ---
 
@@ -715,226 +716,142 @@ form.watch('source.name');
 
 ## 6. Field Component Interfaces
 
-The library defines interfaces for field components. **Consuming applications must provide implementations**.
+The engine is **type-agnostic** — it does not define per-type interfaces for standard fields. All field components use `BaseFieldComponent`. Only structurally-specific types (select, array, custom) have dedicated props types because they carry additional required properties.
+
+**Consuming applications must provide implementations** for each field type they use.
 
 ### 6.1 Base Field Props Interface
 
 ```typescript
-import { 
-  ControllerRenderProps, 
+import {
+  ControllerRenderProps,
   ControllerFieldState,
   FieldPath,
-  FieldValues 
+  FieldValues
 } from 'react-hook-form';
 
 /**
  * Base props passed to all field components.
  * Field components receive react-hook-form controller props.
  */
-interface BaseFieldProps<TFieldValues extends FieldValues = FieldValues> {
+interface BaseFieldProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+  TConfig extends BaseFieldElement = BaseFieldElement,
+> {
   /** react-hook-form field props (value, onChange, onBlur, name, ref) */
-  field: ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>;
-  
+  field: ControllerRenderProps<TFieldValues, TName>;
+
   /** react-hook-form field state (invalid, isTouched, isDirty, error) */
   fieldState: ControllerFieldState;
-  
+
   /** Field configuration from form config */
-  config: FieldElement;
+  config: TConfig;
+
+  /** All current form values (for reading other fields, dependent logic) */
+  formValues: FormData;
+
+  /** Set any field value (for dependent field logic, cascading updates) */
+  setValue: (name: string, value: unknown) => void;
 }
+
+/**
+ * Base component type — used for ALL field components.
+ */
+type BaseFieldComponent<TProps extends BaseFieldProps = BaseFieldProps> =
+  React.ComponentType<TProps>;
 ```
 
-### 6.2 Text Field Interface
+### 6.2 Standard Field Components
+
+All standard field components (text, email, boolean, phone, date, etc.) use `BaseFieldComponent`. The engine does not provide per-type interfaces for these — `config` is always `BaseFieldElement`.
+
+```tsx
+/**
+ * Example: Text field
+ */
+const TextInput: BaseFieldComponent = ({ field, fieldState, config }) => (
+  <div>
+    <label>{config.label}</label>
+    <input {...field} type="text" placeholder={config.placeholder} />
+    {fieldState.error && <span>{fieldState.error.message}</span>}
+  </div>
+);
+
+/**
+ * Example: Email field
+ */
+const EmailInput: BaseFieldComponent = ({ field, fieldState, config }) => (
+  <div>
+    <label>{config.label}</label>
+    <input {...field} type="email" placeholder={config.placeholder} />
+    {fieldState.error && <span>{fieldState.error.message}</span>}
+  </div>
+);
+
+/**
+ * Example: Boolean field
+ */
+const Checkbox: BaseFieldComponent = ({ field, fieldState, config }) => (
+  <div>
+    <label>
+      <input
+        type="checkbox"
+        checked={field.value}
+        onChange={(e) => field.onChange(e.target.checked)}
+        onBlur={field.onBlur}
+        name={field.name}
+        ref={field.ref}
+      />
+      {config.label}
+    </label>
+    {fieldState.error && <span>{fieldState.error.message}</span>}
+  </div>
+);
+```
+
+### 6.3 Structurally-Specific Field Props
+
+Only types with structural properties beyond `BaseFieldElement` have dedicated props types:
+
+```typescript
+/** Props for select field — config includes options, multiple, clearable, etc. */
+type SelectFieldProps = BaseFieldProps<FieldValues, FieldPath<FieldValues>, SelectFieldElement>;
+
+/** Props for array field — config includes itemFields, minItems, maxItems, etc. */
+type ArrayFieldProps = BaseFieldProps<FieldValues, FieldPath<FieldValues>, ArrayFieldElement>;
+
+/** Props for custom field — config includes component, componentProps, etc. */
+type CustomFieldProps = BaseFieldProps<FieldValues, FieldPath<FieldValues>, CustomFieldElement>;
+```
+
+For select/array components, cast `config` to access extra properties:
+
+```tsx
+const SelectField: BaseFieldComponent = ({ field, fieldState, config: baseConfig }) => {
+  const config = baseConfig as SelectFieldElement;
+  return (
+    <div>
+      <label>{config.label}</label>
+      <select {...field}>
+        {config.options?.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      {fieldState.error && <span>{fieldState.error.message}</span>}
+    </div>
+  );
+};
+```
+
+### 6.4 Field Component Registry
 
 ```typescript
 /**
- * Props for text input field component.
- * 
- * @example
- * ```tsx
- * const TextInput: TextFieldComponent = ({ field, fieldState, config }) => (
- *   <div>
- *     <label>{config.label}</label>
- *     <input
- *       {...field}
- *       type="text"
- *       placeholder={config.placeholder}
- *     />
- *     {fieldState.error && <span>{fieldState.error.message}</span>}
- *   </div>
- * );
- * ```
+ * Open-ended registry mapping field type strings to component implementations.
+ * The engine does NOT enforce a fixed set — any string key is valid.
  */
-interface TextFieldProps extends BaseFieldProps {
-  config: TextFieldElement;
-}
-
-type TextFieldComponent = React.ComponentType<TextFieldProps>;
-```
-
-### 6.3 Email Field Interface
-
-```typescript
-/**
- * Props for email input field component.
- * 
- * @example
- * ```tsx
- * const EmailInput: EmailFieldComponent = ({ field, fieldState, config }) => (
- *   <div>
- *     <label>{config.label}</label>
- *     <input
- *       {...field}
- *       type="email"
- *       placeholder={config.placeholder}
- *     />
- *     {fieldState.error && <span>{fieldState.error.message}</span>}
- *   </div>
- * );
- * ```
- */
-interface EmailFieldProps extends BaseFieldProps {
-  config: EmailFieldElement;
-}
-
-type EmailFieldComponent = React.ComponentType<EmailFieldProps>;
-```
-
-### 6.4 Boolean Field Interface
-
-```typescript
-/**
- * Props for boolean (checkbox/toggle) field component.
- * 
- * @example
- * ```tsx
- * const Checkbox: BooleanFieldComponent = ({ field, fieldState, config }) => (
- *   <div>
- *     <label>
- *       <input
- *         type="checkbox"
- *         checked={field.value}
- *         onChange={(e) => field.onChange(e.target.checked)}
- *         onBlur={field.onBlur}
- *         name={field.name}
- *         ref={field.ref}
- *       />
- *       {config.label}
- *     </label>
- *     {fieldState.error && <span>{fieldState.error.message}</span>}
- *   </div>
- * );
- * ```
- */
-interface BooleanFieldProps extends BaseFieldProps {
-  config: BooleanFieldElement;
-}
-
-type BooleanFieldComponent = React.ComponentType<BooleanFieldProps>;
-```
-
-### 6.5 Phone Field Interface
-
-```typescript
-/**
- * Props for phone input field component.
- * 
- * @example
- * ```tsx
- * const PhoneInput: PhoneFieldComponent = ({ field, fieldState, config }) => (
- *   <div>
- *     <label>{config.label}</label>
- *     <input
- *       {...field}
- *       type="tel"
- *       inputMode="numeric"
- *       placeholder={config.placeholder}
- *     />
- *     {fieldState.error && <span>{fieldState.error.message}</span>}
- *   </div>
- * );
- * ```
- */
-interface PhoneFieldProps extends BaseFieldProps {
-  config: PhoneFieldElement;
-}
-
-type PhoneFieldComponent = React.ComponentType<PhoneFieldProps>;
-```
-
-### 6.6 Date Field Interface
-
-```typescript
-/**
- * Props for date input field component.
- * 
- * @example
- * ```tsx
- * const DatePicker: DateFieldComponent = ({ field, fieldState, config }) => (
- *   <div>
- *     <label>{config.label}</label>
- *     <input
- *       {...field}
- *       type="date"
- *     />
- *     {fieldState.error && <span>{fieldState.error.message}</span>}
- *   </div>
- * );
- * ```
- */
-interface DateFieldProps extends BaseFieldProps {
-  config: DateFieldElement;
-}
-
-type DateFieldComponent = React.ComponentType<DateFieldProps>;
-```
-
-### 6.7 Custom Field Interface
-
-```typescript
-/**
- * Props for custom field components.
- * Custom components receive additional componentProps from configuration.
- * 
- * @example
- * ```tsx
- * const RichTextEditor: CustomFieldComponent = ({ field, fieldState, config }) => {
- *   const { minHeight, toolbar } = config.componentProps || {};
- *   return (
- *     <div>
- *       <label>{config.label}</label>
- *       <MyRichTextEditor
- *         value={field.value}
- *         onChange={field.onChange}
- *         minHeight={minHeight}
- *         toolbar={toolbar}
- *       />
- *       {fieldState.error && <span>{fieldState.error.message}</span>}
- *     </div>
- *   );
- * };
- * ```
- */
-interface CustomFieldProps extends BaseFieldProps {
-  config: CustomFieldElement;
-}
-
-type CustomFieldComponent = React.ComponentType<CustomFieldProps>;
-```
-
-### 6.8 Field Component Registry
-
-```typescript
-/**
- * Registry mapping field types to their component implementations.
- * All field types must be registered for the form to render properly.
- */
-interface FieldComponentRegistry {
-  text: TextFieldComponent;
-  email: EmailFieldComponent;
-  boolean: BooleanFieldComponent;
-  phone: PhoneFieldComponent;
-  date: DateFieldComponent;
-}
+type FieldComponentRegistry = Record<string, BaseFieldComponent>;
 
 /**
  * Registry for custom components referenced by name in configuration.
@@ -942,24 +859,14 @@ interface FieldComponentRegistry {
 type CustomComponentRegistry = Record<string, CustomFieldComponent>;
 ```
 
-### 6.9 Complete Field Props Union
+### 6.5 Field Props Type
 
 ```typescript
 /**
- * Union type for all field props.
+ * Field props type — alias for BaseFieldProps.
+ * The engine is type-agnostic; all fields receive the same base props.
  */
-type FieldProps = 
-  | TextFieldProps 
-  | EmailFieldProps 
-  | BooleanFieldProps 
-  | PhoneFieldProps 
-  | DateFieldProps 
-  | CustomFieldProps;
-
-/**
- * Generic field component type.
- */
-type FieldComponent = React.ComponentType<FieldProps>;
+type FieldProps = BaseFieldProps;
 ```
 
 ---
@@ -2562,38 +2469,28 @@ export interface ValidationOptions {
 // Field Element Types
 // ============================================
 
-interface BaseFieldElement {
+/**
+ * Base interface for all field elements.
+ * The engine is type-agnostic — `type` is an open string, not a closed enum.
+ */
+export interface BaseFieldElement {
+  /** Any string — consumer-defined field type */
+  type: string;
   name: string;
   label?: string;
   placeholder?: string;
-  defaultValue?: string | number | boolean | null;
+  defaultValue?: string | number | boolean | null | unknown[] | Record<string, unknown>;
   validation?: ValidationConfig;
   visible?: JsonLogicRule;
   /** Field path this field depends on (for cascading selects) */
   dependsOn?: string;
   /** Reset this field when parent changes (default: true) */
   resetOnParentChange?: boolean;
+  /** Consumer-specific metadata (passed through to field components) */
+  meta?: Record<string, unknown>;
 }
 
-export interface TextFieldElement extends BaseFieldElement {
-  type: 'text';
-}
-
-export interface EmailFieldElement extends BaseFieldElement {
-  type: 'email';
-}
-
-export interface BooleanFieldElement extends BaseFieldElement {
-  type: 'boolean';
-}
-
-export interface PhoneFieldElement extends BaseFieldElement {
-  type: 'phone';
-}
-
-export interface DateFieldElement extends BaseFieldElement {
-  type: 'date';
-}
+// Structurally-specific types — only types with extra required properties
 
 export interface CustomFieldElement extends BaseFieldElement {
   type: 'custom';
@@ -2610,7 +2507,9 @@ export interface SelectOption {
 export interface SelectFieldElement extends BaseFieldElement {
   type: 'select';
   /** Available options */
-  options: SelectOption[];
+  options?: SelectOption[];
+  /** Describes how to resolve options */
+  optionsSource?: OptionsSource;
   /** Allow selecting multiple values (default: false) */
   multiple?: boolean;
   /** Allow clearing selection (default: true) */
@@ -2635,15 +2534,14 @@ export interface ArrayFieldElement extends BaseFieldElement {
   sortable?: boolean;
 }
 
-export type FieldElement =
-  | TextFieldElement
-  | EmailFieldElement
-  | BooleanFieldElement
-  | PhoneFieldElement
-  | DateFieldElement
+/** Structurally-specific field types */
+export type StructuralFieldElement =
   | SelectFieldElement
   | ArrayFieldElement
   | CustomFieldElement;
+
+/** A field element — any element whose type is not "container" */
+export type FieldElement = StructuralFieldElement | BaseFieldElement;
 
 // ============================================
 // Layout Element Types
@@ -2735,67 +2633,36 @@ export type GeneratedSchema = ZodObject<any>;
 
 export interface BaseFieldProps<
   TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+  TConfig extends BaseFieldElement = BaseFieldElement,
 > {
   field: ControllerRenderProps<TFieldValues, TName>;
   fieldState: ControllerFieldState;
-  config: FieldElement;
+  config: TConfig;
+  formValues: FormData;
+  setValue: (name: string, value: unknown) => void;
 }
 
-export interface TextFieldProps extends BaseFieldProps {
-  config: TextFieldElement;
-}
-
-export interface EmailFieldProps extends BaseFieldProps {
-  config: EmailFieldElement;
-}
-
-export interface BooleanFieldProps extends BaseFieldProps {
-  config: BooleanFieldElement;
-}
-
-export interface PhoneFieldProps extends BaseFieldProps {
-  config: PhoneFieldElement;
-}
-
-export interface DateFieldProps extends BaseFieldProps {
-  config: DateFieldElement;
-}
-
-export interface CustomFieldProps extends BaseFieldProps {
-  config: CustomFieldElement;
-}
-
-export interface SelectFieldProps extends BaseFieldProps {
-  config: SelectFieldElement;
-}
-
-export interface ArrayFieldProps extends BaseFieldProps {
-  config: ArrayFieldElement;
-}
+// Structurally-specific props (only types with extra properties)
+export type SelectFieldProps = BaseFieldProps<FieldValues, FieldPath<FieldValues>, SelectFieldElement>;
+export type ArrayFieldProps = BaseFieldProps<FieldValues, FieldPath<FieldValues>, ArrayFieldElement>;
+export type CustomFieldProps = BaseFieldProps<FieldValues, FieldPath<FieldValues>, CustomFieldElement>;
 
 // ============================================
 // Component Types
 // ============================================
 
-export type TextFieldComponent = React.ComponentType<TextFieldProps>;
-export type EmailFieldComponent = React.ComponentType<EmailFieldProps>;
-export type BooleanFieldComponent = React.ComponentType<BooleanFieldProps>;
-export type PhoneFieldComponent = React.ComponentType<PhoneFieldProps>;
-export type DateFieldComponent = React.ComponentType<DateFieldProps>;
-export type SelectFieldComponent = React.ComponentType<SelectFieldProps>;
-export type ArrayFieldComponent = React.ComponentType<ArrayFieldProps>;
-export type CustomFieldComponent = React.ComponentType<CustomFieldProps>;
+/** Base component type — used for ALL field components */
+export type BaseFieldComponent<TProps extends BaseFieldProps = BaseFieldProps> =
+  React.ComponentType<TProps>;
 
-export interface FieldComponentRegistry {
-  text: TextFieldComponent;
-  email: EmailFieldComponent;
-  boolean: BooleanFieldComponent;
-  phone: PhoneFieldComponent;
-  date: DateFieldComponent;
-  select?: SelectFieldComponent;
-  array?: ArrayFieldComponent;
-}
+// Structurally-specific component types
+export type SelectFieldComponent = BaseFieldComponent<SelectFieldProps>;
+export type ArrayFieldComponent = BaseFieldComponent<ArrayFieldProps>;
+export type CustomFieldComponent = BaseFieldComponent<CustomFieldProps>;
+
+/** Open-ended registry — any string key is valid */
+export type FieldComponentRegistry = Record<string, BaseFieldComponent>;
 
 export type CustomComponentRegistry = Record<string, CustomFieldComponent>;
 
@@ -3370,17 +3237,13 @@ describe('DynamicForm Integration', () => {
 ```tsx
 import {
   DynamicForm,
-  ComponentRegistry,
-  TextFieldComponent,
-  EmailFieldComponent,
-  BooleanFieldComponent,
-  PhoneFieldComponent,
-  DateFieldComponent,
-  FormData
-} from '@company/dynamic-form';
+  type BaseFieldComponent,
+  type ComponentRegistry,
+  type FormData
+} from 'rhf-dynamic-forms';
 
-// Implement field components
-const TextInput: TextFieldComponent = ({ field, fieldState, config }) => (
+// Implement field components — all use BaseFieldComponent
+const TextInput: BaseFieldComponent = ({ field, fieldState, config }) => (
   <div className="form-field">
     <label htmlFor={field.name}>{config.label}</label>
     <input
@@ -3395,7 +3258,7 @@ const TextInput: TextFieldComponent = ({ field, fieldState, config }) => (
   </div>
 );
 
-const EmailInput: EmailFieldComponent = ({ field, fieldState, config }) => (
+const EmailInput: BaseFieldComponent = ({ field, fieldState, config }) => (
   <div className="form-field">
     <label htmlFor={field.name}>{config.label}</label>
     <input
@@ -3410,7 +3273,7 @@ const EmailInput: EmailFieldComponent = ({ field, fieldState, config }) => (
   </div>
 );
 
-const Checkbox: BooleanFieldComponent = ({ field, fieldState, config }) => (
+const Checkbox: BaseFieldComponent = ({ field, fieldState, config }) => (
   <div className="form-field">
     <label>
       <input
@@ -3426,7 +3289,7 @@ const Checkbox: BooleanFieldComponent = ({ field, fieldState, config }) => (
   </div>
 );
 
-const PhoneInput: PhoneFieldComponent = ({ field, fieldState, config }) => (
+const PhoneInput: BaseFieldComponent = ({ field, fieldState, config }) => (
   <div className="form-field">
     <label htmlFor={field.name}>{config.label}</label>
     <input
@@ -3442,7 +3305,7 @@ const PhoneInput: PhoneFieldComponent = ({ field, fieldState, config }) => (
   </div>
 );
 
-const DateInput: DateFieldComponent = ({ field, fieldState, config }) => (
+const DateInput: BaseFieldComponent = ({ field, fieldState, config }) => (
   <div className="form-field">
     <label htmlFor={field.name}>{config.label}</label>
     <input

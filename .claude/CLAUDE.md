@@ -80,17 +80,24 @@ pnpm lint:fix     # Auto-fix lint errors
 
 ## Key Types
 
-- `FormConfiguration` - Top-level form config with elements array
-- `FieldElement` - Union of all field types (text, email, boolean, phone, date, select, array, custom)
-- `SelectFieldElement` - Dropdown/multi-select with options
-- `ArrayFieldElement` - Repeatable field groups with itemFields template
-- `ContainerElement` - Variant-based layout container with children and meta
+The engine is **type-agnostic** — `type` is an open string, not a closed enum. Only `"container"` has special meaning.
+
+- `BaseFieldElement` - Base interface for all fields (`type: string`, `name`, `label`, `validation`, `meta`, etc.)
+- `FieldElement` - `StructuralFieldElement | BaseFieldElement` (any field)
+- `StructuralFieldElement` - `SelectFieldElement | ArrayFieldElement | CustomFieldElement` (types with extra properties)
+- `SelectFieldElement` - Dropdown/multi-select with `options`, `multiple`, `optionsSource`
+- `ArrayFieldElement` - Repeatable field groups with `itemFields` template
+- `CustomFieldElement` - User-defined component with `component` name and `componentProps`
+- `ContainerElement` - Variant-based layout container with `children` and `meta`
+- `BaseFieldComponent` - Component type for ALL field components
+- `BaseFieldProps` - Props passed to all field components (field, fieldState, config, formValues, setValue)
 - `ComponentRegistry` - Unified registry: `{ fields, custom?, containers? }`
-- `FieldComponentRegistry` - Maps field types to components
+- `FieldComponentRegistry` - `Record<string, BaseFieldComponent>` — open-ended, any key valid
 - `CustomComponentRegistry` - Maps custom component names to implementations
 - `CustomContainerRegistry` - Maps container variant strings to components
-- `ContainerComponent` - Component type for container renderers
-- `ZodSchema` - Type alias for external Zod schema prop
+- `SchemaMap` - `Record<string, SchemaFactory>` — configurable type→schema mapping
+- `defaultSchemaMap` - Well-known type defaults (text, email, boolean, phone, date)
+- `setSchemaMap()` - Replace active schema map at app startup
 
 ## Implementation Phases
 
@@ -102,7 +109,7 @@ pnpm lint:fix     # Auto-fix lint errors
 
 ## Testing
 
-Tests are colocated with implementation files (256 tests across 22 files):
+Tests are colocated with implementation files (257 tests across 21 files):
 
 **Parser & Schema:**
 - `src/parser/configParser.test.ts` - Configuration parsing
