@@ -226,6 +226,26 @@ describe("fieldSchemas", () => {
       expect(schema.safeParse("abcd").success).toBe(true);
     });
 
+    it("should accept null and undefined but enforce minLength for optional field", () => {
+      const field: BaseFieldElement = {
+        type: "text",
+        name: "nickname",
+        validation: { minLength: 3 },
+      };
+
+      const schema = buildFieldSchema(field);
+
+      // Optional field (no required:true) should accept null and undefined
+      expect(schema.safeParse(null).success).toBe(true);
+      expect(schema.safeParse(undefined).success).toBe(true);
+
+      // But still reject strings shorter than minLength
+      expect(schema.safeParse("ab").success).toBe(false);
+
+      // And accept valid strings
+      expect(schema.safeParse("abc").success).toBe(true);
+    });
+
     it("should apply maxLength validation", () => {
       const field: BaseFieldElement = {
         type: "text",

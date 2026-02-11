@@ -561,11 +561,20 @@ interface DynamicFormContextValue {
   /** Parsed configuration */
   config: FormConfiguration;
 
+  /** Unified component registry (fields, custom, containers) */
+  components: ComponentRegistry;
+
   /** Visibility state for all fields */
   visibility: Record<string, boolean>;
 
-  /** Unified component registry (fields, custom, containers) */
-  components: ComponentRegistry;
+  /** Optional wrapper function for each field */
+  fieldWrapper?: FieldWrapperFunction;
+
+  /** Current form validity state (reactive) */
+  isValid: boolean;
+
+  /** Current form errors (reactive) */
+  errors: Record<string, unknown>;
 }
 
 const DynamicFormContext = createContext<DynamicFormContextValue | null>(null);
@@ -967,8 +976,8 @@ function ContainerRenderer({ config }: { config: ContainerElement }) {
   const variant = config.variant ?? "default";
   const ContainerComp = containers[variant] ?? containers.default;
 
-  const renderedChildren = config.children?.map((child) => {
-    const key = "name" in child && child.name ? String(child.name) : `element-${child.type}`;
+  const renderedChildren = config.children?.map((child, idx) => {
+    const key = "name" in child && child.name ? String(child.name) : `element-${idx}`;
     return <ElementRenderer config={child} key={key} />;
   });
 

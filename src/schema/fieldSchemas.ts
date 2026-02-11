@@ -363,6 +363,16 @@ export const buildFieldSchema = (field: FieldElement): ZodTypeAny => {
     } else {
       schema = schema.nullish();
     }
+  } else if (isStringSchema(schema)) {
+    // Required string fields: API may send null for empty values.
+    // Accept null at the type level but reject it via refine so the error
+    // message is "This field is required" instead of "expected string, received null".
+    schema = schema
+      .nullable()
+      .refine(
+        (val) => val !== null && val !== undefined && String(val).length > 0,
+        { message: "This field is required" }
+      );
   }
 
   return schema;
