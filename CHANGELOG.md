@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0](https://github.com/olegkrachun/dynamic-form/compare/rhf-dynamic-forms-v1.2.0...rhf-dynamic-forms-v1.3.0) (2026-02-12)
+
+
+### Features
+
+* add section support and improve form configuration ([1f86aa1](https://github.com/olegkrachun/dynamic-form/commit/1f86aa1fbdff8dbe0727a3b1474d0508ca0aa210))
+* refactor sections to use customContainers with variant ([9d72f67](https://github.com/olegkrachun/dynamic-form/commit/9d72f676a966fd70f73a14a3a97cce290c979926))
+
+
+### Bug Fixes
+
+* address CodeRabbit review comments ([dc6bb0a](https://github.com/olegkrachun/dynamic-form/commit/dc6bb0a2a89ef0d206b6e99c7adaf49c73ec8852))
+* address second round of CodeRabbit review comments ([9ceffb3](https://github.com/olegkrachun/dynamic-form/commit/9ceffb3121bcdc3fe3b853eb297255e64f1e5091))
+* prioritize structural detection for array fields over schema map ([2f35b4b](https://github.com/olegkrachun/dynamic-form/commit/2f35b4b9e351c23eeb11aba8e8dedb0441829d99))
+* resolve Zod v4 schema compatibility and validation issues ([68f07e2](https://github.com/olegkrachun/dynamic-form/commit/68f07e2d1da714f2751cf54450c501485cc1ac74))
+* sync docs with runtime context, fix duplicate keys, handle required null strings ([79c7aa2](https://github.com/olegkrachun/dynamic-form/commit/79c7aa2b350723418f3c1606f3a347f8bf6e78bd))
+
 ## [1.2.0](https://github.com/olegkrachun/dynamic-form/compare/rhf-dynamic-forms-v1.1.0...rhf-dynamic-forms-v1.2.0) (2026-02-03)
 
 
