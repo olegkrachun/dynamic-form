@@ -196,6 +196,27 @@ describe("fieldSchemas", () => {
       const invalidData = [{ name: "John", email: "not-an-email" }];
       expect(schema.safeParse(invalidData).success).toBe(false);
     });
+
+    it("should use array schema even when field type matches schema map", () => {
+      // Regression: field has type "text" (in schema map) but also has
+      // itemFields — structural detection must win over schema map lookup
+      const field = {
+        type: "text",
+        name: "parties",
+        itemFields: [
+          { type: "text", name: "name" },
+          { type: "email", name: "email" },
+        ],
+      } as unknown as ArrayFieldElement;
+
+      const schema = buildFieldSchema(field);
+
+      // Must accept arrays (not strings)
+      expect(
+        schema.safeParse([{ name: "John", email: "j@e.com" }]).success
+      ).toBe(true);
+      expect(schema.safeParse("some string").success).toBe(false);
+    });
   });
 
   describe("applyStringValidation", () => {

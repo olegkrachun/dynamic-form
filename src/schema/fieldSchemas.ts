@@ -154,32 +154,36 @@ export const resetSchemaMap = (): void => {
  * Build the base Zod schema for a field.
  *
  * Detection order:
- * 1. Schema map — look up `field.type` in the active schema map (consumer overrides win)
- * 2. Structural — `itemFields` → array schema, `options`/`multiple` → select schema
- * 3. Fallback — `z.unknown()`
+ * 1. Structural — `itemFields` → array schema (always wins — requires recursive item schemas)
+ * 2. Schema map — look up `field.type` in the active schema map (consumer overrides win)
+ * 3. Structural — `options`/`multiple` → select schema (fallback for selects not in schema map)
+ * 4. Fallback — `z.unknown()`
  *
- * Schema map is checked first so consumers can override structural heuristics
- * (e.g. register a custom "select" factory that returns a different schema).
+ * Array fields are checked first because they carry `itemFields` that must be
+ * recursively converted to Zod schemas — a flat schema-map factory cannot do this.
+ * Schema map is checked before select detection so consumers can override select heuristics.
  *
  * @param field - The field element configuration
  * @returns Base Zod schema for the field type
  */
 const buildBaseSchema = (field: FieldElement): ZodTypeAny => {
-  // 1. Schema map lookup — configurable by consumers, checked first
+  // 1. Array fields always use structural detection (recursive item schemas)
+  if ("itemFields" in field) {
+    return buildArraySchema(field as ArrayFieldElement);
+  }
+
+  // 2. Schema map lookup — configurable by consumers
   const factory = activeSchemaMap[field.type];
   if (factory) {
     return factory(field);
   }
 
-  // 2. Structural detection — select and array have required structural properties
-  if ("itemFields" in field) {
-    return buildArraySchema(field as ArrayFieldElement);
-  }
+  // 3. Select fields — structural detection for types not in schema map
   if ("options" in field || "multiple" in field) {
     return buildSelectSchema(field as SelectFieldElement);
   }
 
-  // 3. Fallback — consumer-defined types without a schema factory
+  // 4. Fallback — consumer-defined types without a schema factory
   return z.unknown();
 };
 
