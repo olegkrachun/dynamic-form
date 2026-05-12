@@ -24,6 +24,7 @@ Configuration-driven form engine for React with react-hook-form and Zod integrat
   - [Visibility Control](#visibility-control)
 - [API Reference](#api-reference)
   - [DynamicForm Props](#dynamicform-props)
+  - [DynamicFormRef](#dynamicformref)
   - [ComponentRegistry](#componentregistry)
   - [Hooks](#hooks)
   - [Exports](#exports)
@@ -516,6 +517,71 @@ interface DynamicFormProps {
   children?: React.ReactNode;
   ref?: React.Ref<DynamicFormRef>;
 }
+```
+
+### DynamicFormRef
+
+Imperative handle attached to `<DynamicForm ref={formRef} />`. Lets the parent
+read form state and drive the form without subscribing through context.
+
+```typescript
+interface DynamicFormRef {
+  /** Snapshot of all form values at the time of the call (non-reactive). */
+  getValues: () => FormData;
+
+  /** Set a single field value. Accepts nested paths ("source.country"). */
+  setValue: (name: string, value: unknown) => void;
+
+  /** Subscribe-style read of all values (reactive when called inside render). */
+  watchAll: () => FormData;
+
+  /** Subscribe-style read of a single field. */
+  watchField: (name: string) => unknown;
+
+  /** Reset the form. When called without arguments, restores `initialData`. */
+  reset: (values?: FormData) => void;
+
+  /** Run validation for one field or for the whole form. */
+  trigger: (name?: string) => Promise<boolean>;
+
+  /** Current overall validity from `formState.isValid`. */
+  getIsValid: () => boolean;
+
+  /** Current validation errors tree from `formState.errors`. */
+  getErrors: () => Record<string, unknown>;
+
+  /**
+   * Whether any field diverges from its `defaultValues` baseline.
+   * Tracked natively by react-hook-form, so reverting an edited field back
+   * to its initial value flips this to `false` again — useful for "discard
+   * changes?" prompts without hand-rolled deep-equality on form snapshots.
+   */
+  getIsDirty: () => boolean;
+}
+```
+
+Example — unsaved-changes guard driven by `getIsDirty`:
+
+```tsx
+const formRef = useRef<DynamicFormRef>(null);
+
+const handleCancel = () => {
+  if (formRef.current?.getIsDirty()) {
+    setShowUnsavedDialog(true);
+    return;
+  }
+  navigateAway();
+};
+
+return (
+  <DynamicForm
+    ref={formRef}
+    config={config}
+    initialData={initialData}
+    components={components}
+    onSubmit={onSubmit}
+  />
+);
 ```
 
 ### ComponentRegistry

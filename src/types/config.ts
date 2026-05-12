@@ -234,4 +234,11 @@ export interface DynamicFormRef {
 
   /** Get current form errors */
   getErrors: () => Record<string, unknown>;
+
+  /**
+   * Whether any field has been changed from its initial value.
+   * Tracked natively by react-hook-form against the `defaultValues` baseline,
+   * so reverting a field back to its initial value flips this back to false.
+   */
+  getIsDirty: () => boolean;
 }
