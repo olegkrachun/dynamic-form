@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0](https://github.com/olegkrachun/rhf-dynamic-form/compare/rhf-dynamic-forms-v1.6.1...rhf-dynamic-forms-v1.7.0) (2026-05-13)
+
+
+### Features
+
+* **dynamic-form:** expose form dirty state via getIsDirty on Dynamic… ([c2e18ca](https://github.com/olegkrachun/rhf-dynamic-form/commit/c2e18ca4b975bf429fbb41506931e57b99c3ba05))
+* **dynamic-form:** expose form dirty state via getIsDirty on DynamicFormRef ([9459f76](https://github.com/olegkrachun/rhf-dynamic-form/commit/9459f76486c4d8636dbbaad8bc3ae26296314ea1))
+
 ## [1.6.1](https://github.com/olegkrachun/rhf-dynamic-form/compare/rhf-dynamic-forms-v1.6.0...rhf-dynamic-forms-v1.6.1) (2026-05-08)
 
 
