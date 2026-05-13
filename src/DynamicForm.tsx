@@ -113,6 +113,7 @@ export const DynamicForm = ({
       trigger: (name?: string) => form.trigger(name),
       getIsValid: () => form.formState.isValid,
       getErrors: () => form.formState.errors,
+      getIsDirty: () => form.formState.isDirty,
     }),
     [form, defaultValues]
   );
