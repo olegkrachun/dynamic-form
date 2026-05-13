@@ -102,6 +102,11 @@ export const DynamicForm = ({
     }
   }, []);
 
+  // `form.formState` properties are lazy proxies that only stay reactive
+  // inside render scope. Outside (e.g. via the imperative ref handle, a
+  // beforeunload listener) they can read stale. Mirror the subscribed value
+  // into a ref so the handle always returns the current state.
+  const isDirtyRef = useRef(false);
   useImperativeHandle(
     ref,
     () => ({
@@ -113,7 +118,7 @@ export const DynamicForm = ({
       trigger: (name?: string) => form.trigger(name),
       getIsValid: () => form.formState.isValid,
       getErrors: () => form.formState.errors,
-      getIsDirty: () => form.formState.isDirty,
+      getIsDirty: () => isDirtyRef.current,
     }),
     [form, defaultValues]
   );
@@ -189,9 +194,16 @@ export const DynamicForm = ({
     return () => subscription.unsubscribe();
   }, [form, parsedConfig, dependencyMap]);
 
-  const { errors: formErrors, isValid: formIsValid } = useFormState({
+  // Subscribe to `isDirty` here so RHF activates dirty-state tracking, then
+  // mirror the value into the ref above for safe out-of-render reads.
+  const {
+    errors: formErrors,
+    isValid: formIsValid,
+    isDirty: formIsDirty,
+  } = useFormState({
     control: form.control,
   });
+  isDirtyRef.current = formIsDirty;
 
   useEffect(() => {
     if (!onValidationChange) {
