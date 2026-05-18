@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0](https://github.com/olegkrachun/rhf-dynamic-form/compare/rhf-dynamic-forms-v1.8.0...rhf-dynamic-forms-v1.9.0) (2026-05-18)
+
+
+### Features
+
+* **schema:** nested itemField paths, uniform required, default date … ([f026e99](https://github.com/olegkrachun/rhf-dynamic-form/commit/f026e999070c320d312228fb55e81d5ab648a849))
+* **schema:** nested itemField paths, uniform required, default date format with consumer opt-out ([94a7e2c](https://github.com/olegkrachun/rhf-dynamic-form/commit/94a7e2c947cf8405a46b9a4ca6638da1bd5383f8))
+
+
+### Bug Fixes
+
+* tests ([b2a033b](https://github.com/olegkrachun/rhf-dynamic-form/commit/b2a033bbac73699354dc72f08e58cdcdf1d1a1d9))
+
 ## [1.8.0](https://github.com/olegkrachun/rhf-dynamic-form/compare/rhf-dynamic-forms-v1.7.0...rhf-dynamic-forms-v1.8.0) (2026-05-13)
 
 
